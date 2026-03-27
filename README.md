@@ -1,101 +1,67 @@
-# 📧 FlexMail
+# 🔥 FlowForge
 
-> **Intelligent Email Response System with Multi-Agent AI & Reinforcement Learning**
+> **Zapier for Autonomous AI Teams — Build AI-Powered Automations with No Code**
 
-FlexMail is a hackathon-ready application that uses multiple AI agents to generate, evaluate, and select the best email responses. It learns from user feedback to improve over time.
+FlowForge transforms your email workflows into a powerful, generalized automation platform where AI agents collaborate to complete tasks, learn from feedback, and integrate with real-world tools.
 
-![Tech Stack](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat&logo=sqlite&logoColor=white)
-![Gmail API](https://img.shields.io/badge/Gmail%20API-EA4335?style=flat&logo=gmail&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)
 
 ---
 
-## 🎯 Features
+## 🎯 What is FlowForge?
 
-- **Multi-Agent Pipeline**: Classifier → 3 Workers → Supervisor → Decision Agent
-- **Reinforcement Learning**: User feedback (👍/👎) updates agent weights over time
-- **Gmail Integration**: Fetch real emails via OAuth 2.0
-- **Real-time Logs**: SSE streaming shows agent activity live
-- **Auto Mode**: Automatically process emails every 15 seconds
-- **Stunning UI**: Dark glassmorphism design with smooth animations
+FlowForge is a **no-code platform** that lets you:
+
+1. **Build workflows** using AI agents that collaborate autonomously
+2. **Connect integrations** (Webhooks, Slack, Email, HTTP APIs)
+3. **Learn from feedback** — agents improve over time with RL
+4. **Automate anything** — not just emails, but any data processing task
+
+### Demo Use Case
+
+```
+📧 Email arrives → 🤖 AI classifies it → 🔀 3 agents draft responses 
+→ 👁️ Supervisor scores them → 🎯 Best one selected → 📤 Send via Slack
+```
 
 ---
 
 ## 🏗️ Architecture
 
-### System Overview
-
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                      FRONTEND  (React + Vite)                    │
-│  ┌──────────┐ ┌──────────┐ ┌───────────┐ ┌────────┐ ┌────────┐  │
-│  │  Agent   │ │ Workflow │ │ Conflict  │ │  Log   │ │ Feed-  │  │
-│  │ Builder  │ │  Canvas  │ │ Dashboard │ │ Viewer │ │  back  │  │
-│  └────┬─────┘ └────┬─────┘ └─────┬─────┘ └───┬────┘ └───┬────┘  │
-│       └─────────────┴─────────────┴───────────┴──────────┘       │
-│                              │  REST / SSE                        │
-└──────────────────────────────┼───────────────────────────────────┘
-                               │
-┌──────────────────────────────┼───────────────────────────────────┐
-│                      BACKEND  (FastAPI)                          │
-│  ┌────────────┐  ┌──────────────────┐  ┌───────────────────────┐ │
-│  │ Agent CRUD │  │   Orchestrator   │  │   Context Engine      │ │
-│  │   API      │  │  (parallel fan   │  │  (time, urgency,      │ │
-│  │            │  │   out + decide)  │  │   history signals)    │ │
-│  └─────┬──────┘  └────────┬─────────┘  └──────────┬────────────┘ │
-│        │                  │                        │              │
-│  ┌─────┴──────────────────┴────────────────────────┴────────────┐ │
-│  │              LLM Service (Featherless.ai)                    │ │
-│  └──────────────────────────┬───────────────────────────────────┘ │
-│                             │                                     │
-│  ┌──────────────────────────┴───────────────────────────────────┐ │
-│  │     RL Engine  (weight tracker + feedback loop)              │ │
-│  └──────────────────────────┬───────────────────────────────────┘ │
-│                             │                                     │
-│  ┌──────────────────────────┴───────────────────────────────────┐ │
-│  │     SQLite + Gmail API                                       │ │
-│  └──────────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────┘
-```
-
-### Pipeline Flow
-
-```
-   📧 Email Arrives (Gmail API or Mock)
-              │
-              ▼
-     ┌─────────────────┐
-     │  🏷️ Classifier  │  → Categorizes: URGENT / FOLLOW-UP / INFORMATIONAL / SPAM
-     └────────┬────────┘
-              │
-     ┌────────┴────────┬─────────────────┐
-     ▼                 ▼                  ▼
-┌──────────┐    ┌──────────┐     ┌──────────────┐
-│ ✍️ Detail │    │ ✍️ Concise│     │ ✍️ Friendly  │   ← 3 WORKERS (parallel)
-│  Agent   │    │  Agent   │     │   Agent      │     Different response styles
-└────┬─────┘    └────┬─────┘     └──────┬───────┘
-     │               │                  │
-     └───────────────┼──────────────────┘
-                     ▼
-           ┌──────────────────┐
-           │ 👁️ Supervisor    │  → Scores all 3 outputs (0-100)
-           └────────┬─────────┘
-                    ▼
-           ┌──────────────────┐
-           │ 🎯 Decision      │  → Picks best using:
-           │    Agent         │     • Supervisor scores
-           └────────┬─────────┘     • RL weights (user history)
-                    │               • Context signals
-                    ▼
-           ┌──────────────────┐
-           │  📤 Final Output │  → Displayed to user
-           └────────┬─────────┘
-                    ▼
-           ┌──────────────────┐
-           │ 👍👎 User Feedback│  → Updates RL weights
-           │   (Accept/Reject)│     for next run
-           └──────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                      FLOWFORGE ARCHITECTURE                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐    │
+│  │   TRIGGERS   │────▶│   WORKFLOW   │────▶│   ACTIONS    │    │
+│  │  • Webhook   │     │    ENGINE    │     │  • Slack     │    │
+│  │  • Manual    │     │   (DAG)      │     │  • Webhook   │    │
+│  │  • Schedule  │     │              │     │  • HTTP      │    │
+│  └──────────────┘     └──────┬───────┘     └──────────────┘    │
+│                              │                                  │
+│         ┌────────────────────┼────────────────────┐            │
+│         ▼                    ▼                    ▼            │
+│  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐       │
+│  │   AGENT 1   │     │   AGENT 2   │     │   AGENT 3   │       │
+│  │  Analyzer   │     │  Executor   │     │  Reviewer   │       │
+│  └──────┬──────┘     └──────┬──────┘     └──────┬──────┘       │
+│         │                   │                   │               │
+│         └───────────────────┼───────────────────┘               │
+│                             ▼                                   │
+│                    ┌─────────────────┐                         │
+│                    │  DECISION NODE  │                         │
+│                    │  (RL-Weighted)  │                         │
+│                    └────────┬────────┘                         │
+│                             ▼                                   │
+│                    ┌─────────────────┐                         │
+│                    │ FEEDBACK LAYER  │◀── User: 👍 / 👎        │
+│                    │  (Learn + Log)  │                         │
+│                    └─────────────────┘                         │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -103,43 +69,29 @@ FlexMail is a hackathon-ready application that uses multiple AI agents to genera
 ## 📁 Project Structure
 
 ```
-flexmail/
+flowforge/
 ├── backend/
 │   ├── main.py              # FastAPI app with all routes
 │   ├── models.py            # Pydantic schemas
-│   ├── database.py          # SQLite setup + CRUD helpers
-│   ├── llm_service.py       # Async OpenAI wrapper (Featherless.ai)
-│   ├── prompts.py           # Agent prompt templates
-│   ├── orchestrator.py      # Core pipeline (parallel workers)
-│   ├── rl_engine.py         # Weight-based reinforcement learning
+│   ├── database.py          # SQLite setup + CRUD
+│   ├── llm_service.py       # Async LLM wrapper
+│   ├── prompts.py           # Generic agent prompts
+│   ├── orchestrator.py      # Workflow execution engine
+│   ├── rl_engine.py         # Reinforcement learning layer
 │   ├── context_engine.py    # Context signal collector
-│   ├── integrations.py      # Gmail API + mock email loader
-│   ├── credentials.json     # Gmail OAuth credentials
-│   ├── token.json           # Auto-generated OAuth token
+│   ├── integrations.py      # Plugin-based integrations
 │   └── requirements.txt
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── App.jsx          # Main layout with tabs
-│   │   ├── App.css          # Dark glassmorphism design system
+│   │   ├── App.jsx          # Main layout
+│   │   ├── App.css          # Dark glassmorphism design
 │   │   ├── api.js           # Backend API client
-│   │   ├── main.jsx         # React entry point
-│   │   └── components/
-│   │       ├── AgentBuilder.jsx      # Create new agents
-│   │       ├── AgentCard.jsx         # Display agent info + weight
-│   │       ├── WorkflowCanvas.jsx    # Pipeline visual + run button
-│   │       ├── ConflictDashboard.jsx # 3-column competing responses
-│   │       ├── DecisionPanel.jsx     # AI decision + reasoning
-│   │       ├── FeedbackButtons.jsx   # Accept/Reject buttons
-│   │       ├── WeightChart.jsx       # RL weight visualization
-│   │       ├── LogViewer.jsx         # Real-time agent logs
-│   │       └── AutoTrigger.jsx       # Auto-mode toggle
-│   ├── index.html
-│   ├── vite.config.js
+│   │   └── components/      # React components
 │   └── package.json
 │
 └── demo/
-    └── sample_emails.json   # 10 mock emails for testing
+    └── sample_emails.json   # Demo data
 ```
 
 ---
@@ -147,16 +99,15 @@ flexmail/
 ## 🚀 Quick Start
 
 ### Prerequisites
-
 - Python 3.9+
 - Node.js 18+
-- Gmail API credentials (credentials.json)
 
 ### Installation
 
 ```bash
-# Clone or navigate to the project
-cd "d:\c disk\OneDrive\Desktop\hack\flexmail"
+# Clone the repo
+git clone https://github.com/Akshith7707/hack.git
+cd hack/flexmail
 
 # Backend setup
 cd backend
@@ -167,170 +118,236 @@ cd frontend
 npm install
 ```
 
-### Running the Application
+### Running
 
 ```bash
-# Terminal 1 - Start Backend
+# Terminal 1 - Backend
 cd backend
 uvicorn main:app --reload
-# Server runs at http://localhost:8000
+# → http://localhost:8000
 
-# Terminal 2 - Start Frontend
+# Terminal 2 - Frontend  
 cd frontend
 npm run dev
-# App runs at http://localhost:5173
+# → http://localhost:5173
 ```
 
-### First Time Setup
+### First Run
 
 1. Open http://localhost:5173
-2. Click **"⚡ Quick Demo Setup"** to create all 6 agents
-3. Click **"📬 Fetch Gmail"** (first time opens OAuth consent)
-4. Select an email and click **"🚀 Run Workflow"**
-5. Review the competing responses and click **👍 Accept** or **👎 Reject**
+2. Click **"⚡ Quick Demo Setup"** to create agents
+3. Select an email and click **"🚀 Run Workflow"**
+4. Review outputs and provide feedback (👍/👎)
 
 ---
 
-## 🔌 API Endpoints
+## 🔌 Integration System
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/agents` | List all agents |
-| `POST` | `/api/agents` | Create a new agent |
-| `DELETE` | `/api/agents/{id}` | Delete an agent |
-| `POST` | `/api/workflow/run` | Execute the full pipeline |
-| `GET` | `/api/workflow/runs` | Get run history |
-| `GET` | `/api/workflow/runs/{id}` | Get specific run details |
-| `POST` | `/api/feedback` | Submit accept/reject feedback |
-| `GET` | `/api/weights` | Get current RL weights |
-| `GET` | `/api/emails` | Fetch 5 latest Gmail emails |
-| `GET` | `/api/mock-email/next` | Get next mock email |
-| `POST` | `/api/demo/setup` | Create all demo agents |
-| `GET` | `/api/stream/{run_id}` | SSE stream for real-time logs |
+FlowForge uses a **plugin-based architecture** for integrations:
+
+### Available Integrations
+
+| Integration | Triggers | Actions |
+|------------|----------|---------|
+| **Webhook** | Receive HTTP POST | Send HTTP request |
+| **Mock Email** | Fetch demo emails | Send mock email |
+| **Slack** | — | Send message to channel |
+
+### Adding Custom Integrations
+
+```python
+from integrations import Integration
+
+class NotionIntegration(Integration):
+    name = "notion"
+    description = "Notion workspace integration"
+    
+    async def trigger(self, config):
+        # Fetch from Notion API
+        pass
+    
+    async def action(self, config, data):
+        # Create page in Notion
+        pass
+```
 
 ---
 
-## 🤖 Agent Types
+## 🤖 Agent System
 
-| Type | Purpose | Count |
-|------|---------|-------|
-| **Classifier** | Categorizes emails (URGENT/FOLLOW-UP/INFORMATIONAL/SPAM) | 1 |
-| **Worker** | Generates responses (detailed/concise/friendly styles) | 3 |
-| **Supervisor** | Scores all worker outputs 0-100 | 1 |
-| **Decision** | Picks best response using scores + RL + context | 1 |
+### Agent Schema
+
+```json
+{
+  "id": "uuid",
+  "name": "Analyzer Agent",
+  "role": "analyzer",
+  "goal": "Extract key information from input",
+  "type": "worker",
+  "style": "detailed",
+  "tools": ["http", "slack"],
+  "memory": {},
+  "feedback_history": []
+}
+```
+
+### Agent Types
+
+| Type | Purpose |
+|------|---------|
+| **Classifier** | Categorize input data |
+| **Worker** | Generate outputs (3 variants) |
+| **Supervisor** | Score and evaluate outputs |
+| **Decision** | Select best output using RL |
 
 ---
 
 ## 🧠 Reinforcement Learning
 
-The RL engine adjusts agent weights based on user feedback:
-
-- **Accept (👍)**: Selected agent's weight increases by 5%
-- **Reject (👎)**: Selected agent's weight decreases by 5%, redistributed to others
-- Weights are normalized to sum to 100%
-- Minimum weight clamped at 5% (agents never fully excluded)
-
-```
-Learning Rate: 0.05
-Initial Weights: 33.3% each (detailed, concise, friendly)
-```
-
----
-
-## 📧 Gmail Integration
-
-### Setup
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create OAuth 2.0 credentials (Desktop app)
-3. Download `credentials.json`
-4. Place in `flexmail/backend/credentials.json`
+FlowForge uses **practical RL** (not academic):
 
 ### How It Works
 
-- **Scope**: `gmail.readonly` (read-only access)
-- **Auth Flow**: `run_local_server` (opens browser)
-- **Token Storage**: Auto-saved to `token.json`
-- **Fetches**: Latest 5 inbox emails (subject + snippet)
+1. **Score**: Supervisor rates outputs 1-10
+2. **Select**: Decision agent picks best using weights + scores
+3. **Feedback**: User accepts (👍) or rejects (👎)
+4. **Learn**: Weights update based on feedback
 
----
-
-## 🎨 UI Design
-
-- **Theme**: Dark (#0a0a0f background)
-- **Style**: Glassmorphism with blur effects
-- **Colors**: Indigo (#6366f1) to Purple (#8b5cf6) gradient
-- **Font**: Inter (400, 500, 600, 700)
-- **Animations**: Fade-in, slide-up, pulse, glow effects
-
----
-
-## ⚙️ Configuration
-
-### LLM Settings (llm_service.py)
+### Weight Update Rules
 
 ```python
-BASE_URL = "https://api.featherless.ai/v1"
-API_KEY = "rc_8cad9e3f8bfc3ff04770f0c6889e3c4af225d4b6aa2dfba34e8fd9b3e21adf4a"
-MODEL = "Qwen/Qwen2.5-7B-Instruct"
-MAX_TOKENS = 1024
+LEARNING_RATE = 0.05
+MIN_WEIGHT = 0.05
+
+# On Accept: selected agent weight increases
+# On Reject: selected agent weight decreases, others gain
 ```
 
-### Database
-
-- **Type**: SQLite (file-based)
-- **Location**: `flexmail/backend/flexmail.db`
-- **Tables**: agents, agent_weights, workflow_runs, run_logs, feedback_log
-
----
-
-## 📊 Sample Output
+### Data Stored
 
 ```json
 {
-  "run_id": "abc-123",
-  "classification": "URGENT",
-  "worker_outputs": [
-    { "agent_name": "Detailed Responder", "style": "detailed", "score": 85, "output": "..." },
-    { "agent_name": "Concise Responder", "style": "concise", "score": 78, "output": "..." },
-    { "agent_name": "Friendly Responder", "style": "friendly", "score": 72, "output": "..." }
-  ],
-  "selected_agent": "Detailed Responder",
-  "final_output": "...",
-  "decision_reason": "Selected detailed response due to high score and urgent context",
-  "context_signals": {
-    "urgency": "URGENT",
-    "time_period": "afternoon",
-    "input_length": 45,
-    "historical_preference": "Detailed Responder"
-  }
+  "input": "...",
+  "output": "...",
+  "agent_id": "abc123",
+  "score": 8,
+  "feedback": "accept",
+  "timestamp": "2024-01-15T10:30:00Z"
 }
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## 📊 API Reference
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | React 18 + Vite |
-| Styling | Vanilla CSS (no Tailwind) |
-| Backend | FastAPI (async Python) |
-| Database | SQLite (raw sqlite3) |
-| LLM | OpenAI SDK → Featherless.ai |
-| Real-time | Server-Sent Events (SSE) |
-| Email | Gmail API (OAuth 2.0) |
+### Agents
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/agents` | List all agents |
+| `POST` | `/api/agents` | Create agent |
+| `DELETE` | `/api/agents/{id}` | Delete agent |
+
+### Workflows
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/workflow/run` | Execute workflow |
+| `GET` | `/api/workflow/runs` | List past runs |
+| `GET` | `/api/workflow/runs/{id}` | Get run details |
+
+### Integrations
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/integrations` | List integrations |
+| `POST` | `/api/integrations/{name}/action` | Run action |
+| `GET` | `/api/emails` | Fetch demo emails |
+
+### Feedback
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/feedback` | Submit feedback |
+| `GET` | `/api/weights` | Get RL weights |
+
+---
+
+## 🛣️ Roadmap
+
+### MVP (Current)
+- [x] Multi-agent pipeline
+- [x] RL feedback system
+- [x] Plugin-based integrations
+- [x] React workflow UI
+
+### V1 (Next)
+- [ ] Visual DAG editor (drag-drop)
+- [ ] More integrations (Notion, Discord, Stripe)
+- [ ] Workflow templates
+- [ ] Prompt optimization from feedback
+
+### V2 (Future)
+- [ ] Team collaboration
+- [ ] Workflow marketplace
+- [ ] Custom agent builders
+- [ ] Enterprise SSO
+
+---
+
+## 🎬 Demo Narrative (YC Pitch)
+
+> "Watch FlowForge automatically handle a failed Stripe payment:
+>
+> 1. **Webhook** receives failed payment event
+> 2. **Analyzer Agent** extracts customer info + failure reason
+> 3. **3 Worker Agents** draft recovery messages (formal, friendly, urgent)
+> 4. **Supervisor** scores each draft
+> 5. **Decision Agent** picks best one based on RL history
+> 6. **Slack Action** posts to #payments channel
+> 7. User clicks 👍 → system learns for next time
+>
+> No code. Just AI agents working together."
+
+---
+
+## ⚙️ Configuration
+
+### LLM Settings
+
+```python
+# llm_service.py
+BASE_URL = "https://api.featherless.ai/v1"
+API_KEY = "your-api-key"
+MODEL = "Qwen/Qwen2.5-7B-Instruct"
+```
+
+### Database
+
+- **Type**: SQLite (file-based)
+- **Location**: `backend/flexmail.db`
+
+---
+
+## 🎨 UI Design
+
+- **Theme**: Dark (#0a0a0f)
+- **Style**: Glassmorphism
+- **Accent**: Indigo → Purple gradient
+- **Font**: Inter
 
 ---
 
 ## 📝 License
 
-MIT License - Built for hackathon demonstration purposes.
+MIT License — Built for hackathons and beyond.
 
 ---
 
-## 🙏 Acknowledgments
+## 🙏 Built With
 
-- [Featherless.ai](https://featherless.ai) for LLM API
-- [Google Gmail API](https://developers.google.com/gmail/api)
-- Built with ❤️ for hackathons
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [React](https://react.dev/)
+- [Featherless.ai](https://featherless.ai/)
+
+**FlowForge** — Where AI agents become your team.

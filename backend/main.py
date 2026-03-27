@@ -19,7 +19,10 @@ from database import (
 )
 from orchestrator import run_workflow, get_run_log_stream
 from rl_engine import on_accept, on_reject, get_weight_summary
-from integrations import get_next_mock_email, format_email_for_input, reset_processed_emails, fetch_latest_emails
+from integrations import (
+    get_next_mock_email, format_email_for_input, reset_processed_emails, 
+    fetch_latest_emails, list_integrations, get_integration
+)
 
 app = FastAPI(
     title="FlexMail API",
@@ -149,12 +152,30 @@ async def get_next_email():
 # Gmail API endpoint - Fetch latest 5 emails
 @app.get("/api/emails")
 async def get_gmail_emails():
-    """Fetch latest 5 emails from Gmail"""
+    """Fetch latest 5 emails (mock data for demo)"""
     try:
         emails = fetch_latest_emails(max_results=5)
         return emails
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Integrations endpoints
+@app.get("/api/integrations")
+async def get_integrations():
+    """List all available integrations"""
+    return list_integrations()
+
+
+@app.post("/api/integrations/{name}/action")
+async def run_integration_action(name: str, config: dict, data: dict):
+    """Run an integration action"""
+    integration = get_integration(name)
+    if not integration:
+        raise HTTPException(status_code=404, detail=f"Integration '{name}' not found")
+    try:
+        result = await integration.action(config, data)
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

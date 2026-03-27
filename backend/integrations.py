@@ -1,97 +1,158 @@
+"""
+FlowForge Integrations Module
+Plugin-based integration system for triggers and actions
+"""
 import json
 import os
-from typing import Optional, Dict, List
-
-# Gmail API imports
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
+import httpx
+from typing import Optional, Dict, List, Any
+from abc import ABC, abstractmethod
 
 DEMO_FILE = os.path.join(os.path.dirname(__file__), "..", "demo", "sample_emails.json")
-CREDENTIALS_FILE = os.path.join(os.path.dirname(__file__), "credentials.json")
-TOKEN_FILE = os.path.join(os.path.dirname(__file__), "token.json")
-
-# Gmail API scope (read-only)
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
 # Track which emails have been processed
 processed_emails = set()
 
 
-# ============== GMAIL API FUNCTIONS ==============
+# ============== INTEGRATION BASE CLASS ==============
 
-def get_gmail_service():
-    """Authenticate and return Gmail API service"""
-    creds = None
+class Integration(ABC):
+    """Base class for all integrations (Zapier-style plugin)"""
+    name: str = "base"
+    description: str = ""
     
-    # Load existing token if available
-    if os.path.exists(TOKEN_FILE):
-        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+    @abstractmethod
+    async def trigger(self, config: Dict) -> List[Dict]:
+        """Trigger: Fetch data from external source"""
+        pass
     
-    # If no valid credentials, authenticate
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            if not os.path.exists(CREDENTIALS_FILE):
-                raise FileNotFoundError("credentials.json not found. Download it from Google Cloud Console.")
-            flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
-            creds = flow.run_local_server(port=0)
+    @abstractmethod
+    async def action(self, config: Dict, data: Dict) -> Dict:
+        """Action: Send data to external destination"""
+        pass
+
+
+# ============== WEBHOOK INTEGRATION ==============
+
+class WebhookIntegration(Integration):
+    """Webhook trigger and HTTP action"""
+    name = "webhook"
+    description = "HTTP webhooks for triggers and actions"
+    
+    async def trigger(self, config: Dict) -> List[Dict]:
+        """Receive webhook data (called by endpoint)"""
+        return config.get("payload", [])
+    
+    async def action(self, config: Dict, data: Dict) -> Dict:
+        """Send HTTP request"""
+        url = config.get("url")
+        method = config.get("method", "POST")
+        headers = config.get("headers", {})
         
-        # Save token for next run
-        with open(TOKEN_FILE, 'w') as token:
-            token.write(creds.to_json())
-    
-    return build('gmail', 'v1', credentials=creds)
+        async with httpx.AsyncClient() as client:
+            response = await client.request(
+                method=method,
+                url=url,
+                json=data,
+                headers=headers,
+                timeout=30.0
+            )
+            return {
+                "status_code": response.status_code,
+                "body": response.text[:500]
+            }
 
+
+# ============== MOCK EMAIL INTEGRATION ==============
+
+class MockEmailIntegration(Integration):
+    """Mock email integration for demo purposes"""
+    name = "mock_email"
+    description = "Demo email integration using sample data"
+    
+    async def trigger(self, config: Dict) -> List[Dict]:
+        """Fetch mock emails"""
+        emails = load_sample_emails()
+        max_results = config.get("max_results", 5)
+        return emails[:max_results]
+    
+    async def action(self, config: Dict, data: Dict) -> Dict:
+        """Mock send email (just logs)"""
+        return {
+            "status": "sent",
+            "to": config.get("to", "demo@example.com"),
+            "subject": data.get("subject", "No Subject"),
+            "message": "Email sent (mock)"
+        }
+
+
+# ============== SLACK INTEGRATION (WEBHOOK-BASED) ==============
+
+class SlackIntegration(Integration):
+    """Slack integration using webhooks"""
+    name = "slack"
+    description = "Send messages to Slack channels"
+    
+    async def trigger(self, config: Dict) -> List[Dict]:
+        """Slack triggers would use Slack Events API (future)"""
+        return []
+    
+    async def action(self, config: Dict, data: Dict) -> Dict:
+        """Send message to Slack webhook"""
+        webhook_url = config.get("webhook_url")
+        if not webhook_url:
+            return {"error": "No webhook_url configured"}
+        
+        message = data.get("message", data.get("text", str(data)))
+        channel = config.get("channel", "#general")
+        
+        payload = {
+            "text": message,
+            "channel": channel
+        }
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(webhook_url, json=payload, timeout=10.0)
+            return {
+                "status": "sent" if response.status_code == 200 else "failed",
+                "status_code": response.status_code
+            }
+
+
+# ============== INTEGRATION REGISTRY ==============
+
+INTEGRATIONS: Dict[str, Integration] = {
+    "webhook": WebhookIntegration(),
+    "mock_email": MockEmailIntegration(),
+    "slack": SlackIntegration(),
+}
+
+def get_integration(name: str) -> Optional[Integration]:
+    """Get integration by name"""
+    return INTEGRATIONS.get(name)
+
+def list_integrations() -> List[Dict]:
+    """List all available integrations"""
+    return [
+        {"name": i.name, "description": i.description}
+        for i in INTEGRATIONS.values()
+    ]
+
+
+# ============== LEGACY FUNCTIONS (for backwards compatibility) ==============
 
 def fetch_latest_emails(max_results: int = 5) -> List[Dict]:
-    """Fetch latest emails from Gmail"""
-    try:
-        service = get_gmail_service()
-        
-        # Get list of messages
-        results = service.users().messages().list(
-            userId='me',
-            maxResults=max_results,
-            labelIds=['INBOX']
-        ).execute()
-        
-        messages = results.get('messages', [])
-        
-        if not messages:
-            return []
-        
-        emails = []
-        for msg in messages:
-            # Get full message details
-            message = service.users().messages().get(
-                userId='me',
-                id=msg['id'],
-                format='metadata',
-                metadataHeaders=['Subject', 'From']
-            ).execute()
-            
-            # Extract subject from headers
-            headers = message.get('payload', {}).get('headers', [])
-            subject = next((h['value'] for h in headers if h['name'] == 'Subject'), 'No Subject')
-            sender = next((h['value'] for h in headers if h['name'] == 'From'), 'Unknown')
-            snippet = message.get('snippet', '')
-            
-            emails.append({
-                'id': msg['id'],
-                'subject': subject,
-                'sender': sender,
-                'snippet': snippet
-            })
-        
-        return emails
-    
-    except FileNotFoundError as e:
-        raise e
-    except Exception as e:
-        raise Exception(f"Gmail API error: {str(e)}")
+    """Fetch emails - uses mock data for demo"""
+    emails = load_sample_emails()
+    return [
+        {
+            "id": str(e.get("id", i)),
+            "subject": e.get("subject", "No Subject"),
+            "sender": e.get("sender", "unknown@example.com"),
+            "snippet": e.get("body", "")[:100]
+        }
+        for i, e in enumerate(emails[:max_results])
+    ]
 
 
 def load_sample_emails() -> List[Dict]:
@@ -155,7 +216,7 @@ def reset_processed_emails():
 
 def format_email_for_input(email: Dict) -> str:
     """Format email dict as input string"""
-    return f"""Subject: {email['subject']}
-From: {email['sender']}
+    return f"""Subject: {email.get('subject', 'No Subject')}
+From: {email.get('sender', 'unknown')}
 
-{email['body']}"""
+{email.get('body', email.get('snippet', ''))}"""
