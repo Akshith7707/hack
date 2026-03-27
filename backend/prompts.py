@@ -1,108 +1,163 @@
+"""
+FlowForge Prompt Templates
+Generic, reusable prompts for AI agents
+"""
 from typing import Dict, List
 
 
-def build_classifier_prompt() -> str:
-    return """You are an expert email classifier for FlexMail. Your job is to categorize incoming emails.
+# ============== ANALYZER PROMPTS ==============
 
-Analyze the email and classify it into ONE of these categories:
-- URGENT: Requires immediate attention, critical issues, time-sensitive matters
-- FOLLOW-UP: Requires a response but not immediately, ongoing conversations
-- INFORMATIONAL: FYI only, no action required, updates and notifications
-- SPAM: Unwanted, promotional, or irrelevant content
+def build_analyzer_prompt() -> str:
+    """Generic analyzer/classifier prompt"""
+    return """You are an expert data analyzer for FlowForge.
+
+Analyze the input and classify it into ONE of these categories:
+- URGENT: Requires immediate attention, critical issues, time-sensitive
+- ACTION: Requires a response or action, but not immediately
+- INFORMATIONAL: FYI only, no action required
+- LOW: Low priority, can be handled later
+
+Also extract key information from the input.
 
 Output format (exactly):
 CATEGORY: <category>
-REASON: <brief explanation>"""
+SUMMARY: <1-2 sentence summary>
+KEY_POINTS:
+- <point 1>
+- <point 2>
+ENTITIES: <any names, amounts, dates mentioned>"""
 
 
-def build_worker_prompt(style: str, goal: str) -> str:
-    prompts = {
-        "detailed": f"""You are a Detailed Email Responder for FlexMail.
+def build_classifier_prompt() -> str:
+    """Backwards compatible alias"""
+    return build_analyzer_prompt()
+
+
+# ============== EXECUTOR PROMPTS ==============
+
+def build_executor_prompt(style: str, role: str, goal: str) -> str:
+    """Generic executor prompt with style variants"""
+    
+    base = f"""You are a {role} for FlowForge.
 Your goal: {goal}
 
-Write a comprehensive, thorough email response that:
-- Addresses ALL points in the original email
+"""
+    
+    styles = {
+        "detailed": base + """Write a comprehensive, thorough response that:
+- Addresses ALL points in the input
 - Provides detailed explanations and context
 - Includes relevant background information
-- Offers multiple solutions or perspectives if applicable
+- Offers multiple solutions or perspectives
 - Uses professional, clear language
 
 Target length: 150-200 words. Be thorough but not rambling.""",
 
-        "concise": f"""You are a Concise Email Responder for FlexMail.
-Your goal: {goal}
-
-Write a brief, direct email response that:
+        "concise": base + """Write a brief, direct response that:
 - Gets straight to the point
 - Addresses the core issue only
 - Uses minimal words without losing meaning
 - Is professional and clear
-- Omits pleasantries and filler
+- Omits unnecessary details
 
 Target length: Under 50 words. Be efficient.""",
 
-        "friendly": f"""You are a Friendly Email Responder for FlexMail.
-Your goal: {goal}
-
-Write a warm, empathetic email response that:
+        "friendly": base + """Write a warm, empathetic response that:
 - Shows genuine care and understanding
 - Uses friendly, approachable language
-- Acknowledges the sender's feelings or situation
+- Acknowledges the user's situation
 - Maintains professionalism while being personable
 - Builds rapport and connection
 
-Target length: 80-120 words. Be warm and genuine."""
+Target length: 80-120 words. Be warm and genuine.""",
+
+        "formal": base + """Write a formal, professional response that:
+- Uses formal language and structure
+- Maintains professional distance
+- Follows business communication standards
+- Is precise and unambiguous
+- Suitable for official communication
+
+Target length: 100-150 words. Be professional.""",
+
+        "creative": base + """Write a creative, engaging response that:
+- Uses vivid language and examples
+- Engages the reader emotionally
+- Offers unique perspectives
+- Is memorable and impactful
+- Balances creativity with clarity
+
+Target length: 100-150 words. Be creative but clear."""
     }
     
-    return prompts.get(style, prompts["detailed"])
+    return styles.get(style, styles["detailed"])
 
 
-def build_supervisor_prompt() -> str:
-    return """You are a Quality Supervisor for FlexMail. Your job is to evaluate email response drafts.
+def build_worker_prompt(style: str, goal: str) -> str:
+    """Backwards compatible alias"""
+    return build_executor_prompt(style, "Response Agent", goal)
 
-You will receive 3 different email responses to the same input. Score each one on a scale of 0-100 based on:
-- Relevance to the original email (30%)
-- Quality of writing and clarity (25%)
-- Appropriateness of tone (20%)
-- Completeness of response (15%)
-- Professionalism (10%)
+
+# ============== REVIEWER PROMPTS ==============
+
+def build_reviewer_prompt() -> str:
+    """Generic reviewer/supervisor prompt"""
+    return """You are a Quality Reviewer for FlowForge.
+
+You will receive multiple responses to the same input. Score each on a scale of 0-100 based on:
+- Relevance: Does it address the input? (30%)
+- Quality: Is it well-written and clear? (25%)
+- Tone: Is the tone appropriate? (20%)
+- Completeness: Does it cover all important points? (15%)
+- Actionability: Can the user act on it? (10%)
 
 Output format (exactly):
 SCORE_1: <score for response 1>
 SCORE_2: <score for response 2>
 SCORE_3: <score for response 3>
-REVIEW: <brief analysis comparing the three responses and noting strengths/weaknesses>"""
+REVIEW: <brief analysis comparing the responses, noting strengths and weaknesses>"""
 
+
+def build_supervisor_prompt() -> str:
+    """Backwards compatible alias"""
+    return build_reviewer_prompt()
+
+
+# ============== DECISION PROMPTS ==============
 
 def build_decision_prompt() -> str:
-    return """You are a Decision Agent for FlexMail. Your job is to select the best email response.
+    """Generic decision agent prompt"""
+    return """You are a Decision Agent for FlowForge.
 
 You will receive:
-1. Three email responses with their supervisor scores
-2. Current RL weights for each agent (based on historical user preferences)
-3. Context signals (urgency, time of day, etc.)
+1. Multiple responses with their quality scores
+2. Current RL weights for each agent (based on user preference history)
+3. Context signals (urgency, time, etc.)
 
 Make your decision based on:
-- Supervisor scores (quality assessment)
-- RL weights (user preference history)
+- Quality scores (objective assessment)
+- RL weights (learned user preferences)
 - Context signals (situational appropriateness)
 
-For URGENT emails, prefer concise responses.
-For casual/FOLLOW-UP emails, consider friendly responses.
-For complex/INFORMATIONAL topics, prefer detailed responses.
-Always consider the RL weights as they reflect user preferences.
+Decision guidelines:
+- For URGENT inputs: prefer concise, actionable responses
+- For complex topics: prefer detailed responses
+- For interpersonal matters: consider friendly responses
+- Always weigh RL history - it reflects what users actually want
 
 Output format (exactly):
 SELECTED: <agent name>
 FINAL: <the complete selected response text>
-REASON: <explanation of your decision considering scores, weights, and context>"""
+REASON: <explanation considering scores, weights, and context>"""
 
+
+# ============== HELPER FUNCTIONS ==============
 
 def build_supervisor_input(worker_outputs: List[Dict]) -> str:
     """Format all worker outputs for supervisor review"""
     sections = []
     for i, output in enumerate(worker_outputs, 1):
-        sections.append(f"""--- RESPONSE {i} ({output['style'].upper()}) ---
+        sections.append(f"""--- RESPONSE {i} ({output.get('style', 'default').upper()}) ---
 Agent: {output['agent_name']}
 {output['output']}
 """)
@@ -122,7 +177,7 @@ def build_decision_input(
     for i, output in enumerate(worker_outputs, 1):
         weight_info = weights.get(output['agent_id'], {})
         current_weight = weight_info.get('weight', 0.33) if isinstance(weight_info, dict) else 0.33
-        outputs_section.append(f"""--- OPTION {i}: {output['agent_name']} ({output['style']}) ---
+        outputs_section.append(f"""--- OPTION {i}: {output['agent_name']} ({output.get('style', 'default')}) ---
 Score: {output.get('score', 'N/A')}/100
 RL Weight: {current_weight:.2%}
 Response:
@@ -146,3 +201,13 @@ Recent Rejections: {context.get('recent_rejections', 0)}
 {context_section}
 
 Based on all the above, select the best response."""
+
+
+# ============== CUSTOM PROMPT BUILDER ==============
+
+def build_custom_prompt(template: str, variables: Dict) -> str:
+    """Build prompt from template with variable substitution"""
+    prompt = template
+    for key, value in variables.items():
+        prompt = prompt.replace(f"{{{{{key}}}}}", str(value))
+    return prompt

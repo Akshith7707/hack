@@ -4,7 +4,7 @@ import asyncio
 from datetime import datetime
 from typing import List
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
 
@@ -17,7 +17,7 @@ from database import (
     get_agent_by_id, delete_agent, get_weights, get_run, 
     get_run_logs, get_all_runs, save_feedback
 )
-from orchestrator import run_workflow, get_run_log_stream
+from workflow_engine import run_workflow, get_run_log_stream
 from rl_engine import on_accept, on_reject, get_weight_summary
 from integrations import (
     get_next_mock_email, format_email_for_input, reset_processed_emails, 
@@ -25,9 +25,9 @@ from integrations import (
 )
 
 app = FastAPI(
-    title="FlexMail API",
-    description="Intelligent email response system with multi-agent AI and reinforcement learning",
-    version="1.0.0"
+    title="FlowForge API",
+    description="Zapier for Autonomous AI Teams - No-code workflow automation with multi-agent AI",
+    version="2.0.0"
 )
 
 # Enable CORS for all origins
@@ -224,44 +224,44 @@ async def setup_demo():
     
     demo_agents = [
         {
-            "name": "Email Classifier",
-            "role": "Classifier",
-            "goal": "Accurately categorize incoming emails by urgency and type",
+            "name": "Analyzer",
+            "role": "Analyzer",
+            "goal": "Analyze and categorize incoming data by urgency and type",
             "type": "classifier",
             "style": None
         },
         {
-            "name": "Detailed Responder",
-            "role": "Worker",
-            "goal": "Write comprehensive, thorough email responses that address all points",
+            "name": "Detailed Agent",
+            "role": "Executor",
+            "goal": "Generate comprehensive, thorough responses that address all points",
             "type": "worker",
             "style": "detailed"
         },
         {
-            "name": "Concise Responder",
-            "role": "Worker", 
-            "goal": "Write brief, direct email responses that get straight to the point",
+            "name": "Concise Agent",
+            "role": "Executor", 
+            "goal": "Generate brief, direct responses that get straight to the point",
             "type": "worker",
             "style": "concise"
         },
         {
-            "name": "Friendly Responder",
-            "role": "Worker",
-            "goal": "Write warm, empathetic email responses that build rapport",
+            "name": "Friendly Agent",
+            "role": "Executor",
+            "goal": "Generate warm, empathetic responses that build rapport",
             "type": "worker",
             "style": "friendly"
         },
         {
-            "name": "Quality Supervisor",
-            "role": "Supervisor",
-            "goal": "Evaluate and score email response drafts for quality",
+            "name": "Reviewer",
+            "role": "Reviewer",
+            "goal": "Evaluate and score response drafts for quality",
             "type": "supervisor",
             "style": None
         },
         {
-            "name": "Decision Maker",
+            "name": "Decision Agent",
             "role": "Decision",
-            "goal": "Select the best email response based on scores, preferences, and context",
+            "goal": "Select the best response based on scores, preferences, and context",
             "type": "decision",
             "style": None
         }
@@ -280,16 +280,72 @@ async def setup_demo():
         )
         created.append(agent)
     
-    # Reset mock emails
+    # Reset mock data
     reset_processed_emails()
     
-    return {"message": "Demo agents created successfully", "agents": created}
+    return {"message": "FlowForge agents created successfully", "agents": created}
 
 
 # Health check
 @app.get("/api/health")
 async def health_check():
-    return {"status": "healthy", "service": "FlexMail API"}
+    return {"status": "healthy", "service": "FlowForge API"}
+
+
+# ============== WEBHOOK TRIGGER ==============
+
+@app.post("/api/webhook/trigger")
+async def webhook_trigger(request: Request):
+    """
+    Webhook endpoint for external triggers (Zapier-style)
+    POST any JSON data to trigger a workflow
+    """
+    try:
+        data = await request.json()
+        
+        # Convert to input string
+        if isinstance(data, dict):
+            input_text = json.dumps(data, indent=2)
+        else:
+            input_text = str(data)
+        
+        # Run workflow
+        result = await run_workflow(input_text)
+        
+        return {
+            "success": True,
+            "run_id": result["run_id"],
+            "classification": result.get("classification"),
+            "selected_agent": result.get("selected_agent_name"),
+            "output": result.get("final_output")
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/webhook/{workflow_name}")
+async def named_webhook_trigger(workflow_name: str, request: Request):
+    """
+    Named webhook endpoint for specific workflows
+    Example: POST /api/webhook/payment-recovery
+    """
+    try:
+        data = await request.json()
+        
+        # Add workflow context
+        input_text = f"Workflow: {workflow_name}\n\nData:\n{json.dumps(data, indent=2)}"
+        
+        # Run workflow
+        result = await run_workflow(input_text)
+        
+        return {
+            "success": True,
+            "workflow": workflow_name,
+            "run_id": result["run_id"],
+            "output": result.get("final_output")
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

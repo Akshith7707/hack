@@ -85,8 +85,8 @@ function App() {
     <div className="app">
       <header className="header">
         <div className="header-brand">
-          <h1 className="header-logo">✉️ FlexMail</h1>
-          <span className="header-tagline">Intelligent Email AI with Reinforcement Learning</span>
+          <h1 className="header-logo">🔥 FlowForge</h1>
+          <span className="header-tagline">Zapier for Autonomous AI Teams</span>
         </div>
         <div className="header-actions">
           <AutoTrigger 
