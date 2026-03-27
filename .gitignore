@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Sensitive files - DO NOT COMMIT
+credentials.json
+token.json
+
+# Database
+*.db
+
+# IDE
+.vscode/
+.idea/
+
+# Build outputs
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db

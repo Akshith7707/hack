@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "subject": "URGENT: Production database is down",
+    "sender": "ops@company.com",
+    "body": "Our main production database has been unreachable for the past 15 minutes. All customer-facing services are affected. We need immediate action. The error logs show connection timeouts and the failover hasn't kicked in automatically.",
+    "urgency": "high"
+  },
+  {
+    "id": 2,
+    "subject": "Meeting follow-up: Q4 Planning",
+    "sender": "sarah@company.com",
+    "body": "Thanks for the great discussion today. Could you send me the slides and let me know your availability for a follow-up next week? I think we need to finalize the budget allocation before the board meeting.",
+    "urgency": "medium"
+  },
+  {
+    "id": 3,
+    "subject": "Quick question about the API",
+    "sender": "developer@partner.com",
+    "body": "Hey! I'm integrating with your API and noticed the /users endpoint returns a 404. Is this expected behavior or am I missing something? The docs say it should return user data.",
+    "urgency": "medium"
+  },
+  {
+    "id": 4,
+    "subject": "Invoice #4521 - Payment Reminder",
+    "sender": "billing@vendor.com",
+    "body": "This is a friendly reminder that invoice #4521 for $2,500 is due in 3 days. Please process the payment to avoid any late fees. Let us know if you have any questions.",
+    "urgency": "medium"
+  },
+  {
+    "id": 5,
+    "subject": "🎉 You've won a FREE iPhone!",
+    "sender": "prizes@totallylegit.xyz",
+    "body": "CONGRATULATIONS! You've been selected as our lucky winner! Click here to claim your FREE iPhone 15 Pro Max! Limited time offer! Act now or miss out forever!",
+    "urgency": "spam"
+  },
+  {
+    "id": 6,
+    "subject": "Team lunch tomorrow?",
+    "sender": "mike@company.com",
+    "body": "Hey team! Anyone up for lunch tomorrow at that new Italian place downtown? Thinking around 12:30. Let me know if you can make it!",
+    "urgency": "low"
+  },
+  {
+    "id": 7,
+    "subject": "CRITICAL: Security breach detected",
+    "sender": "security@company.com",
+    "body": "We've detected unusual login activity from an unrecognized IP address attempting to access the admin panel. Multiple failed attempts in the last hour. Recommend immediate password reset and 2FA enforcement.",
+    "urgency": "high"
+  },
+  {
+    "id": 8,
+    "subject": "Your weekly newsletter",
+    "sender": "newsletter@techblog.com",
+    "body": "This week in tech: AI advances, new startup funding rounds, and the latest framework everyone's talking about. Plus our exclusive interview with industry leaders.",
+    "urgency": "low"
+  },
+  {
+    "id": 9,
+    "subject": "Project deadline extension request",
+    "sender": "contractor@freelance.com",
+    "body": "Hi, I wanted to discuss the current project timeline. Due to some unexpected technical challenges with the third-party integration, I'm requesting a one-week extension. The core features are complete but testing is taking longer than anticipated.",
+    "urgency": "medium"
+  },
+  {
+    "id": 10,
+    "subject": "Feedback on your recent presentation",
+    "sender": "ceo@company.com",
+    "body": "Great job on the presentation yesterday! The board was impressed with the data analysis. I'd like to schedule a follow-up to discuss potential next steps and how we can scale the initiative across other departments.",
+    "urgency": "medium"
+  }
+]
