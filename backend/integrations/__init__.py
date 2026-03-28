@@ -1,5 +1,5 @@
 """
-FlowForge Integrations Registry
+FlexCode Integrations Registry
 Central registry for all available integrations
 """
 from typing import Dict, Optional, List

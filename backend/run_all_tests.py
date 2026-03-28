@@ -28,7 +28,7 @@ def run_test_suite(script_name):
 
 def main():
     print("\n╔" + "=" * 68 + "╗")
-    print("║" + " " * 15 + "FlowForge Complete System Validation" + " " * 16 + "║")
+    print("║" + " " * 15 + "FlexCode Complete System Validation" + " " * 16 + "║")
     print("╚" + "=" * 68 + "╝")
     
     results = []

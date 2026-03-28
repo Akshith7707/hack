@@ -1,4 +1,4 @@
-# 🔥 FlowForge — YC Transformation Blueprint
+# 🔥 FlexCode — YC Transformation Blueprint
 
 > **"Zapier for Autonomous AI Teams"**
 
@@ -11,7 +11,7 @@ Transform FlexMail into a generalized no-code automation platform where AI agent
 ### Current State → Target State
 
 ```
-CURRENT (FlexMail)                    TARGET (FlowForge)
+CURRENT (FlexMail)                    TARGET (FlexCode)
 ─────────────────────                 ─────────────────────
 Email Input                    →      Trigger Node (Webhook/Manual/Schedule)
 Classifier Agent               →      Analyzer Node (generic)
@@ -49,7 +49,7 @@ backend/
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                         FLOWFORGE ARCHITECTURE                         │
+│                         FlexCode ARCHITECTURE                         │
 ├────────────────────────────────────────────────────────────────────────┤
 │                                                                        │
 │  ┌─────────────────────────────────────────────────────────────────┐  │
@@ -725,7 +725,7 @@ CREATE TABLE integration_configs (
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  FlowForge                              [+ New Workflow] │
+│  FlexCode                              [+ New Workflow] │
 ├────────────┬─────────────────────────────────────────────┤
 │            │                                             │
 │  WORKFLOWS │            WORKFLOW CANVAS                  │
@@ -814,14 +814,14 @@ npm install @dnd-kit/core    # Drag and drop
 
 ### The Hook (10 seconds)
 
-> "FlowForge is Zapier for AI teams. Instead of connecting apps, you connect AI agents that work together, learn from feedback, and improve over time."
+> "FlexCode is Zapier for AI teams. Instead of connecting apps, you connect AI agents that work together, learn from feedback, and improve over time."
 
 ### The Demo (60 seconds)
 
 ```
 "Watch this: A Stripe webhook just fired — a customer's payment failed.
 
-1. [Webhook triggers] FlowForge receives the event
+1. [Webhook triggers] FlexCode receives the event
 2. [Analyzer runs] AI extracts: customer name, amount, failure reason
 3. [3 Agents draft] Formal, Friendly, and Urgent recovery messages
 4. [Reviewer scores] Each draft is rated for tone and effectiveness
@@ -829,7 +829,7 @@ npm install @dnd-kit/core    # Drag and drop
 6. [Slack sends] Message posted to #payments channel
 
 Now I click 'Accept' — the Friendly agent's weight increases.
-Next time? FlowForge will prefer Friendly automatically.
+Next time? FlexCode will prefer Friendly automatically.
 
 No code. No training. Just AI agents learning from human feedback."
 ```
@@ -856,13 +856,13 @@ No code. No training. Just AI agents learning from human feedback."
 
 ```bash
 # Rename folder
-mv flexmail flowforge
+mv flexmail FlexCode
 
 # Update package.json
-sed -i 's/flexmail/flowforge/g' frontend/package.json
+sed -i 's/flexmail/FlexCode/g' frontend/package.json
 
 # Update Python imports
-sed -i 's/FlexMail/FlowForge/g' backend/*.py
+sed -i 's/FlexMail/FlexCode/g' backend/*.py
 ```
 
 ### Step 2: Create Workflow Engine
@@ -887,7 +887,7 @@ async def webhook_trigger(workflow_id: str, request: Request):
 
 ```jsx
 // Update App.jsx title
-<h1>🔥 FlowForge</h1>
+<h1>🔥 FlexCode</h1>
 
 // Add workflow list sidebar
 // Add canvas for DAG visualization
@@ -906,7 +906,7 @@ async def webhook_trigger(workflow_id: str, request: Request):
 | `backend/database.py` | Modify | Add workflow tables |
 | `backend/main.py` | Modify | Add workflow routes |
 | `frontend/src/App.jsx` | Modify | New layout |
-| `README.md` | Modify | FlowForge branding |
+| `README.md` | Modify | FlexCode branding |
 
 ---
 

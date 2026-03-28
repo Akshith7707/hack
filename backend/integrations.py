@@ -1,5 +1,5 @@
 """
-FlowForge Integrations Module
+FlexCode Integrations Module
 Plugin-based integration system for triggers and actions
 """
 import json

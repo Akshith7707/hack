@@ -31,7 +31,7 @@ from gmail_service import (
 )
 
 app = FastAPI(
-    title="FlowForge API",
+    title="FlexCode API",
     description="Zapier for Autonomous AI Teams - No-code workflow automation with multi-agent AI",
     version="2.0.0"
 )
@@ -469,7 +469,7 @@ async def setup_demo():
     # Create the two demo workflows
     _create_demo_workflows()
     
-    return {"message": "FlowForge agents and workflows created successfully", "agents": created}
+    return {"message": "FlexCode agents and workflows created successfully", "agents": created}
 
 
 def _create_demo_workflows():
@@ -517,7 +517,7 @@ def _create_demo_workflows():
 # Health check
 @app.get("/api/health")
 async def health_check():
-    return {"status": "healthy", "service": "FlowForge API"}
+    return {"status": "healthy", "service": "FlexCode API"}
 
 
 # ============== WEBHOOK TRIGGER ==============

@@ -1,8 +1,8 @@
-# 🔥 FlowForge
+# 🔥 FlexCode
 
 > **Zapier for Autonomous AI Teams — Build AI-Powered Automations with No Code**
 
-FlowForge transforms your email workflows into a powerful, generalized automation platform where AI agents collaborate to complete tasks, learn from feedback, and integrate with real-world tools.
+FlexCode transforms your email workflows into a powerful, generalized automation platform where AI agents collaborate to complete tasks, learn from feedback, and integrate with real-world tools.
 
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black)
@@ -10,9 +10,9 @@ FlowForge transforms your email workflows into a powerful, generalized automatio
 
 ---
 
-## 🎯 What is FlowForge?
+## 🎯 What is FlexCode?
 
-FlowForge is a **no-code platform** that lets you:
+FlexCode is a **no-code platform** that lets you:
 
 1. **Build workflows** using AI agents that collaborate autonomously
 2. **Connect integrations** (Webhooks, Slack, Email, HTTP APIs)
@@ -32,7 +32,7 @@ FlowForge is a **no-code platform** that lets you:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                      FLOWFORGE ARCHITECTURE                     │
+│                      FlexCode ARCHITECTURE                     │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐    │
@@ -69,7 +69,7 @@ FlowForge is a **no-code platform** that lets you:
 ## 📁 Project Structure
 
 ```
-flowforge/
+FlexCode/
 ├── backend/
 │   ├── main.py              # FastAPI app with all routes
 │   ├── models.py            # Pydantic schemas
@@ -143,7 +143,7 @@ npm run dev
 
 ## 🔌 Integration System
 
-FlowForge uses a **plugin-based architecture** for integrations:
+FlexCode uses a **plugin-based architecture** for integrations:
 
 ### Available Integrations
 
@@ -204,7 +204,7 @@ class NotionIntegration(Integration):
 
 ## 🧠 Reinforcement Learning
 
-FlowForge uses **practical RL** (not academic):
+FlexCode uses **practical RL** (not academic):
 
 ### How It Works
 
@@ -297,7 +297,7 @@ MIN_WEIGHT = 0.05
 
 ## 🎬 Demo Narrative (YC Pitch)
 
-> "Watch FlowForge automatically handle a failed Stripe payment:
+> "Watch FlexCode automatically handle a failed Stripe payment:
 >
 > 1. **Webhook** receives failed payment event
 > 2. **Analyzer Agent** extracts customer info + failure reason
@@ -350,4 +350,4 @@ MIT License — Built for hackathons and beyond.
 - [React](https://react.dev/)
 - [Featherless.ai](https://featherless.ai/)
 
-**FlowForge** — Where AI agents become your team.
+**FlexCode** — Where AI agents become your team.

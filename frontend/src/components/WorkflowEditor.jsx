@@ -15,7 +15,7 @@ function WorkflowEditor({ workflow, agents, onBack, onSave }) {
   const supervisorAgent = agents.find(a => a.type === 'supervisor');
   const decisionAgent = agents.find(a => a.type === 'decision');
 
-  // Build default FlowForge pipeline nodes
+  // Build default FlexCode pipeline nodes
   const buildDefaultNodes = () => {
     const nodes = [
       {

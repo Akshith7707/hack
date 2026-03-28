@@ -1,6 +1,6 @@
 """
 Real-World Use Case Tests
-Test FlowForge with realistic scenarios
+Test FlexCode with realistic scenarios
 """
 import asyncio
 from workflow_engine import run_workflow

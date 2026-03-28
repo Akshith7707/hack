@@ -1,5 +1,5 @@
 """
-FlowForge Workflow Engine
+FlexCode Workflow Engine
 DAG-based workflow execution with parallel node support
 """
 import asyncio

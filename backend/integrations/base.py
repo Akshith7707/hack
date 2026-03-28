@@ -1,5 +1,5 @@
 """
-FlowForge Integration Base Class
+FlexCode Integration Base Class
 Abstract base for all integrations (like Zapier's "apps")
 """
 from abc import ABC, abstractmethod

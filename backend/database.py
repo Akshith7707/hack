@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 import os
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "flowforge.db")
+DB_PATH = os.path.join(os.path.dirname(__file__), "FlexCode.db")
 
 
 def get_connection():

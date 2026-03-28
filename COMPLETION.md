@@ -1,4 +1,4 @@
-# 🎉 FlowForge - System Complete & Validated
+# 🎉 FlexCode - System Complete & Validated
 
 ## ✅ Completion Status: **READY FOR DEPLOYMENT**
 
@@ -137,7 +137,7 @@ flexmail/
 │   ├── test_system.py           # Core tests
 │   ├── test_usecases.py         # Real-world tests
 │   ├── test_advanced.py         # Edge case tests
-│   └── flowforge.db             # SQLite database
+│   └── FlexCode.db             # SQLite database
 │
 ├── frontend/
 │   ├── src/
@@ -217,7 +217,7 @@ python test_advanced.py    # Edge cases (9 tests)
 ## 🎓 Learning Resources
 
 - **README.md** - Complete user and developer documentation
-- **FLOWFORGE_BLUEPRINT.md** - Architecture and design details
+- **FlexCode_BLUEPRINT.md** - Architecture and design details
 - **TEST_REPORT.md** - Detailed test results and analysis
 - **API Docs** - http://localhost:8000/docs (when running)
 
@@ -289,7 +289,7 @@ For issues or questions:
 
 **Date:** March 27, 2026  
 **Version:** 2.0.0  
-**System:** FlowForge - AI-Powered Workflow Automation
+**System:** FlexCode - AI-Powered Workflow Automation
 
 ---
 

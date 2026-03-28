@@ -1,5 +1,5 @@
 """
-Gmail Integration Service for FlowForge
+Gmail Integration Service for FlexCode
 OAuth 2.0 authentication with real Gmail API access
 """
 import os

@@ -85,7 +85,7 @@ function App() {
     <div className="app">
       <header className="header">
         <div className="header-brand">
-          <h1 className="header-logo">🔥 FlowForge</h1>
+          <h1 className="header-logo">🔥 FlexCode</h1>
           <span className="header-tagline">Zapier for Autonomous AI Teams</span>
         </div>
         <div className="header-actions">

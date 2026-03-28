@@ -1,5 +1,5 @@
 """
-FlowForge System Test Suite
+FlexCode System Test Suite
 Comprehensive tests for backend functionality
 """
 import asyncio
@@ -193,7 +193,7 @@ def run_all_tests():
     """Run all tests"""
     async def _run_tests():
         print("=" * 60)
-        print("🚀 FlowForge System Test Suite")
+        print("🚀 FlexCode System Test Suite")
         print("=" * 60)
         
         results = []

@@ -123,7 +123,7 @@ function App() {
       <nav className="top-nav">
         <div className="nav-brand">
           <span className="brand-icon">⚡</span>
-          <span className="brand-name">FlowForge</span>
+          <span className="brand-name">FlexCode</span>
           <span className="brand-tagline">Zapier + Reinforcement Learning</span>
         </div>
         

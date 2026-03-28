@@ -1,5 +1,5 @@
 """
-FlowForge - Complete System Optimization and Validation
+FlexCode - Complete System Optimization and Validation
 Run this to validate entire system and get recommendations
 """
 import asyncio
@@ -212,7 +212,7 @@ def generate_summary_report():
     print_header("FINAL VALIDATION SUMMARY")
     
     print(f"\n📅 Test Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"🖥️  System: FlowForge v2.0.0")
+    print(f"🖥️  System: FlexCode v2.0.0")
     print(f"🐍 Python: 3.13.7")
     print(f"⚡ Framework: FastAPI + React")
     
@@ -224,7 +224,7 @@ def generate_summary_report():
     print("\n📚 Documentation:")
     print("   - README.md - Full documentation")
     print("   - TEST_REPORT.md - Detailed test results")
-    print("   - FLOWFORGE_BLUEPRINT.md - Architecture details")
+    print("   - FlexCode_BLUEPRINT.md - Architecture details")
     
     print("\n🚀 Quick Start:")
     print("   1. Run: start.bat")
@@ -245,7 +245,7 @@ async def run_full_validation():
     
     print("\n")
     print("╔" + "=" * 68 + "╗")
-    print("║" + " " * 15 + "FlowForge Complete System Validation" + " " * 16 + "║")
+    print("║" + " " * 15 + "FlexCode Complete System Validation" + " " * 16 + "║")
     print("╚" + "=" * 68 + "╝")
     
     # Step 1: Health check

@@ -1,5 +1,5 @@
 """
-FlowForge Prompt Templates
+FlexCode Prompt Templates
 Generic, reusable prompts for AI agents
 """
 from typing import Dict, List
@@ -9,7 +9,7 @@ from typing import Dict, List
 
 def build_analyzer_prompt() -> str:
     """Generic analyzer/classifier prompt"""
-    return """You are an expert data analyzer for FlowForge.
+    return """You are an expert data analyzer for FlexCode.
 
 Analyze the input and classify it into ONE of these categories:
 - URGENT: Requires immediate attention, critical issues, time-sensitive
@@ -38,7 +38,7 @@ def build_classifier_prompt() -> str:
 def build_executor_prompt(style: str, role: str, goal: str) -> str:
     """Generic executor prompt with style variants"""
     
-    base = f"""You are a {role} for FlowForge.
+    base = f"""You are a {role} for FlexCode.
 Your goal: {goal}
 
 """
@@ -102,7 +102,7 @@ def build_worker_prompt(style: str, goal: str) -> str:
 
 def build_reviewer_prompt() -> str:
     """Generic reviewer/supervisor prompt with strictly parseable output"""
-    return """You are a Quality Reviewer for FlowForge.
+    return """You are a Quality Reviewer for FlexCode.
 
 You will receive multiple responses to the same input. Score each on a scale of 1-10 based on:
 - Relevance: Does it address the input? (30%)
@@ -133,7 +133,7 @@ def build_supervisor_prompt() -> str:
 
 def build_decision_prompt() -> str:
     """Generic decision agent prompt"""
-    return """You are a Decision Agent for FlowForge.
+    return """You are a Decision Agent for FlexCode.
 
 You will receive:
 1. Multiple responses with their quality scores
