@@ -2,22 +2,24 @@
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  background: var(--bg-secondary);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
+  background: var(--bg-card);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
   min-width: 150px;
   cursor: grab;
   transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .dag-node:hover {
-  border-color: var(--accent-color);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(99, 102, 241, 0.1);
+  transform: translateY(-2px);
 }
 
 .dag-node.selected {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.3);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3), var(--shadow-md);
 }
 
 .node-icon {
@@ -26,9 +28,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 6px;
+  font-size: 16px;
+  border-radius: var(--radius-sm);
   margin-right: 12px;
   flex-shrink: 0;
 }
@@ -40,7 +41,7 @@
 
 .node-label {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -49,7 +50,7 @@
 
 .node-info {
   font-size: 11px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
@@ -65,32 +66,32 @@
 
 /* Agent node */
 .agent-node {
-  border-left: 4px solid #818cf8;
+  border-left: 4px solid #6366f1;
 }
 
 .agent-node .node-icon {
-  background: rgba(129, 140, 248, 0.15);
-  color: #818cf8;
+  background: rgba(99, 102, 241, 0.15);
+  color: #6366f1;
 }
 
 /* Competition node */
 .competition-node {
-  border-left: 4px solid #f59e0b;
+  border-left: 4px solid #7c3aed;
 }
 
 .competition-node .node-icon {
-  background: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
+  background: rgba(124, 58, 237, 0.15);
+  color: #7c3aed;
 }
 
 /* Condition node */
 .condition-node {
-  border-left: 4px solid #8b5cf6;
+  border-left: 4px solid #a855f7;
 }
 
 .condition-node .node-icon {
-  background: rgba(139, 92, 246, 0.15);
-  color: #8b5cf6;
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
 }
 
 /* Action node */
@@ -105,20 +106,23 @@
 
 /* React Flow handles */
 .react-flow__handle {
-  width: 10px;
-  height: 10px;
-  background: var(--border-color);
-  border: 2px solid var(--bg-secondary);
+  width: 12px;
+  height: 12px;
+  background: var(--accent-primary);
+  border: 3px solid var(--bg-card);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
 }
 
 .react-flow__handle:hover {
-  background: var(--accent-color);
+  background: var(--accent-secondary);
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.8);
+  transform: scale(1.2);
 }
 
 .react-flow__handle-left {
-  left: -6px;
+  left: -7px;
 }
 
 .react-flow__handle-right {
-  right: -6px;
+  right: -7px;
 }

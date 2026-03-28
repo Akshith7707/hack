@@ -7,7 +7,6 @@ import WorkflowDashboard from './components/WorkflowDashboard';
 import WorkflowEditor from './components/WorkflowEditor';
 import RunResults from './components/RunResults';
 import RLInsights from './components/RLInsights';
-import EmailAutomation from './components/EmailAutomation';
 import './App.css';
 
 // Scroll reveal observer for animations
@@ -124,7 +123,7 @@ function App() {
         <div className="nav-brand">
           <span className="brand-icon">⚡</span>
           <span className="brand-name">FlexCode</span>
-          <span className="brand-tagline">Zapier + Reinforcement Learning</span>
+          {/* <span className="brand-tagline">Zapier + Reinforcement Learning</span> */}
         </div>
         
         <div className="nav-tabs">
@@ -135,13 +134,7 @@ function App() {
             <span className="nav-icon">🔄</span>
             Workflows
           </button>
-          <button 
-            className={`nav-tab ${currentPage === 'emails' ? 'active' : ''}`}
-            onClick={() => setCurrentPage('emails')}
-          >
-            <span className="nav-icon">📧</span>
-            Email Automation
-          </button>
+
           <button 
             className={`nav-tab ${currentPage === 'results' ? 'active' : ''}`}
             onClick={() => setCurrentPage('results')}
