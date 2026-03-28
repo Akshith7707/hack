@@ -183,7 +183,63 @@ def init_db():
             timestamp TEXT NOT NULL
         )
     """)
-    
+
+    # Workflow templates table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS workflow_templates (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            category TEXT DEFAULT 'general',
+            icon TEXT DEFAULT '...',
+            nodes TEXT NOT NULL,
+            edges TEXT NOT NULL,
+            use_count INTEGER DEFAULT 0,
+            is_featured INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT
+        )
+    """)
+
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_templates_category
+        ON workflow_templates(category)
+    """)
+
+    # Prompt versions table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS prompt_versions (
+            id TEXT PRIMARY KEY,
+            agent_id TEXT NOT NULL,
+            prompt_text TEXT NOT NULL,
+            version INTEGER DEFAULT 1,
+            performance_score REAL DEFAULT 0.0,
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (agent_id) REFERENCES agents(id)
+        )
+    """)
+
+    # Prompt suggestions table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS prompt_suggestions (
+            id TEXT PRIMARY KEY,
+            agent_id TEXT NOT NULL,
+            current_prompt TEXT NOT NULL,
+            suggested_prompt TEXT NOT NULL,
+            reasoning TEXT,
+            status TEXT DEFAULT 'pending',
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (agent_id) REFERENCES agents(id)
+        )
+    """)
+
+    # Migration: add custom_prompt column to agents if missing
+    cursor.execute("PRAGMA table_info(agents)")
+    agent_cols = [col[1] for col in cursor.fetchall()]
+    if 'custom_prompt' not in agent_cols:
+        cursor.execute("ALTER TABLE agents ADD COLUMN custom_prompt TEXT DEFAULT NULL")
+
     conn.commit()
     conn.close()
 
@@ -767,10 +823,269 @@ def get_weight_history(agent_id: str = None, limit: int = 100) -> List[Dict]:
 def increment_total_runs(agent_id: str):
     conn = get_connection()
     cursor = conn.cursor()
-    
+
     cursor.execute("""
         UPDATE agent_weights SET total_runs = total_runs + 1 WHERE agent_id = ?
     """, (agent_id,))
-    
+
     conn.commit()
     conn.close()
+
+
+# ============== WORKFLOW TEMPLATES ==============
+
+def create_template(template_id: str, name: str, description: str, category: str,
+                    icon: str, nodes: List, edges: List, is_featured: bool = False) -> Dict:
+    conn = get_connection()
+    cursor = conn.cursor()
+    now = datetime.utcnow().isoformat()
+
+    cursor.execute("""
+        INSERT INTO workflow_templates
+        (id, name, description, category, icon, nodes, edges, is_featured, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (template_id, name, description, category, icon,
+          json.dumps(nodes), json.dumps(edges), 1 if is_featured else 0, now, now))
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "id": template_id,
+        "name": name,
+        "description": description,
+        "category": category,
+        "icon": icon,
+        "nodes": nodes,
+        "edges": edges,
+        "is_featured": is_featured,
+        "use_count": 0,
+        "created_at": now
+    }
+
+
+def get_all_templates(category: str = None) -> List[Dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    if category:
+        cursor.execute("""
+            SELECT * FROM workflow_templates WHERE category = ?
+            ORDER BY is_featured DESC, use_count DESC
+        """, (category,))
+    else:
+        cursor.execute("""
+            SELECT * FROM workflow_templates
+            ORDER BY is_featured DESC, use_count DESC
+        """)
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    results = []
+    for row in rows:
+        data = dict(row)
+        data['nodes'] = json.loads(data['nodes'])
+        data['edges'] = json.loads(data['edges'])
+        data['is_featured'] = bool(data['is_featured'])
+        results.append(data)
+
+    return results
+
+
+def get_template(template_id: str) -> Optional[Dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM workflow_templates WHERE id = ?", (template_id,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if row:
+        data = dict(row)
+        data['nodes'] = json.loads(data['nodes'])
+        data['edges'] = json.loads(data['edges'])
+        data['is_featured'] = bool(data['is_featured'])
+        return data
+    return None
+
+
+def increment_template_usage(template_id: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE workflow_templates SET use_count = use_count + 1 WHERE id = ?
+    """, (template_id,))
+
+    conn.commit()
+    conn.close()
+
+
+def clone_template_to_workflow(template_id: str, user_name: str = None) -> Dict:
+    """Clone a template into a new workflow"""
+    import uuid
+    template = get_template(template_id)
+    if not template:
+        raise ValueError(f"Template {template_id} not found")
+
+    workflow_id = str(uuid.uuid4())
+    name = f"{template['name']}" + (f" ({user_name})" if user_name else " (Copy)")
+
+    workflow = create_workflow(
+        workflow_id=workflow_id,
+        name=name,
+        description=template['description'],
+        trigger_type='manual',
+        nodes=template['nodes'],
+        edges=template['edges']
+    )
+
+    increment_template_usage(template_id)
+
+    return workflow
+
+
+# ============== PROMPT OPTIMIZATION ==============
+
+def save_prompt_suggestion(suggestion_id: str, agent_id: str, current_prompt: str,
+                           suggested_prompt: str, reasoning: str = None) -> Dict:
+    conn = get_connection()
+    cursor = conn.cursor()
+    now = datetime.utcnow().isoformat()
+
+    cursor.execute("""
+        INSERT INTO prompt_suggestions
+        (id, agent_id, current_prompt, suggested_prompt, reasoning, status, created_at)
+        VALUES (?, ?, ?, ?, ?, 'pending', ?)
+    """, (suggestion_id, agent_id, current_prompt, suggested_prompt, reasoning, now))
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "id": suggestion_id,
+        "agent_id": agent_id,
+        "current_prompt": current_prompt,
+        "suggested_prompt": suggested_prompt,
+        "reasoning": reasoning,
+        "status": "pending",
+        "created_at": now
+    }
+
+
+def get_pending_suggestions(agent_id: str = None) -> List[Dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    if agent_id:
+        cursor.execute("""
+            SELECT ps.*, a.name as agent_name, a.style
+            FROM prompt_suggestions ps
+            JOIN agents a ON ps.agent_id = a.id
+            WHERE ps.agent_id = ? AND ps.status = 'pending'
+            ORDER BY ps.created_at DESC
+        """, (agent_id,))
+    else:
+        cursor.execute("""
+            SELECT ps.*, a.name as agent_name, a.style
+            FROM prompt_suggestions ps
+            JOIN agents a ON ps.agent_id = a.id
+            WHERE ps.status = 'pending'
+            ORDER BY ps.created_at DESC
+        """)
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [dict(row) for row in rows]
+
+
+def update_suggestion_status(suggestion_id: str, status: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE prompt_suggestions SET status = ? WHERE id = ?
+    """, (status, suggestion_id))
+
+    conn.commit()
+    conn.close()
+
+
+def get_suggestion(suggestion_id: str) -> Optional[Dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM prompt_suggestions WHERE id = ?", (suggestion_id,))
+    row = cursor.fetchone()
+    conn.close()
+
+    return dict(row) if row else None
+
+
+def update_agent_custom_prompt(agent_id: str, custom_prompt: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE agents SET custom_prompt = ? WHERE id = ?
+    """, (custom_prompt, agent_id))
+
+    conn.commit()
+    conn.close()
+
+
+def save_prompt_version(version_id: str, agent_id: str, prompt_text: str) -> Dict:
+    conn = get_connection()
+    cursor = conn.cursor()
+    now = datetime.utcnow().isoformat()
+
+    # Get next version number
+    cursor.execute("""
+        SELECT COALESCE(MAX(version), 0) + 1 as next_version
+        FROM prompt_versions WHERE agent_id = ?
+    """, (agent_id,))
+    row = cursor.fetchone()
+    next_version = row['next_version'] if row else 1
+
+    # Deactivate previous versions
+    cursor.execute("""
+        UPDATE prompt_versions SET is_active = 0 WHERE agent_id = ?
+    """, (agent_id,))
+
+    # Insert new version
+    cursor.execute("""
+        INSERT INTO prompt_versions
+        (id, agent_id, prompt_text, version, is_active, created_at)
+        VALUES (?, ?, ?, ?, 1, ?)
+    """, (version_id, agent_id, prompt_text, next_version, now))
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "id": version_id,
+        "agent_id": agent_id,
+        "prompt_text": prompt_text,
+        "version": next_version,
+        "is_active": True,
+        "created_at": now
+    }
+
+
+def get_prompt_history(agent_id: str) -> List[Dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT * FROM prompt_versions
+        WHERE agent_id = ?
+        ORDER BY version DESC
+    """, (agent_id,))
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [dict(row) for row in rows]
+

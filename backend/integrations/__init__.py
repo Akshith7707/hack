@@ -7,6 +7,9 @@ from .base import Integration
 from .webhook import WebhookIntegration
 from .slack import SlackIntegration
 from .http import HTTPIntegration
+from .notion import NotionIntegration
+from .discord import DiscordIntegration
+from .stripe import StripeIntegration
 
 
 # Registry of all available integrations
@@ -14,6 +17,9 @@ INTEGRATIONS: Dict[str, Integration] = {
     "webhook": WebhookIntegration(),
     "slack": SlackIntegration(),
     "http": HTTPIntegration(),
+    "notion": NotionIntegration(),
+    "discord": DiscordIntegration(),
+    "stripe": StripeIntegration(),
 }
 
 

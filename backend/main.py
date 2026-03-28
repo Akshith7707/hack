@@ -14,10 +14,14 @@ from models import (
 )
 from database import (
     init_db, create_agent, get_all_agents, get_agents_by_type,
-    get_agent_by_id, delete_agent, get_weights, get_run, 
+    get_agent_by_id, delete_agent, get_weights, get_run,
     get_run_logs, get_all_runs, save_feedback,
     create_workflow, get_all_workflows, get_workflow, update_workflow, delete_workflow,
-    get_execution, get_execution_logs, get_recent_executions, reset_agent_drift
+    get_execution, get_execution_logs, get_recent_executions, reset_agent_drift,
+    create_template, get_all_templates, get_template, increment_template_usage,
+    clone_template_to_workflow, save_prompt_suggestion, get_pending_suggestions,
+    update_suggestion_status, get_suggestion, update_agent_custom_prompt,
+    save_prompt_version, get_prompt_history
 )
 from workflow_engine import run_workflow, get_run_log_stream, run_dag_workflow
 from rl_engine import on_accept, on_reject, on_feedback, get_weight_summary, get_weights_with_history
@@ -357,6 +361,170 @@ async def run_integration_action(name: str, config: dict, data: dict):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============== WORKFLOW TEMPLATES ==============
+
+@app.get("/api/templates")
+async def list_templates(category: str = None):
+    """Get all workflow templates, optionally filtered by category"""
+    return get_all_templates(category)
+
+
+@app.get("/api/templates/categories")
+async def get_template_categories():
+    """Get list of template categories"""
+    return [
+        {"id": "email", "name": "Email Automation", "icon": "M"},
+        {"id": "support", "name": "Customer Support", "icon": "S"},
+        {"id": "sales", "name": "Sales & CRM", "icon": "B"},
+        {"id": "devops", "name": "DevOps & Monitoring", "icon": "D"},
+        {"id": "content", "name": "Content & Social", "icon": "C"},
+        {"id": "finance", "name": "Finance & Billing", "icon": "F"}
+    ]
+
+
+@app.get("/api/templates/{template_id}")
+async def get_template_details(template_id: str):
+    """Get a specific template"""
+    template = get_template(template_id)
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return template
+
+
+@app.post("/api/templates/{template_id}/clone")
+async def clone_template(template_id: str, request: Request):
+    """Clone a template into a new workflow"""
+    try:
+        data = await request.json()
+        user_name = data.get("name")
+    except:
+        user_name = None
+
+    try:
+        workflow = clone_template_to_workflow(template_id, user_name)
+        return workflow
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.post("/api/templates")
+async def create_new_template(request: Request):
+    """Create a new template"""
+    data = await request.json()
+    template_id = str(uuid.uuid4())
+
+    template = create_template(
+        template_id=template_id,
+        name=data.get('name', 'Untitled Template'),
+        description=data.get('description', ''),
+        category=data.get('category', 'general'),
+        icon=data.get('icon', 'T'),
+        nodes=data.get('nodes', []),
+        edges=data.get('edges', []),
+        is_featured=data.get('is_featured', False)
+    )
+
+    return template
+
+
+# ============== PROMPT OPTIMIZATION ==============
+
+@app.get("/api/agents/{agent_id}/performance")
+async def get_agent_performance(agent_id: str):
+    """Get detailed performance stats for an agent"""
+    agent = get_agent_by_id(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    weights = get_weights()
+    agent_weight_data = weights.get(agent_id, {})
+
+    times_selected = agent_weight_data.get('times_selected', 0) or 0
+    times_accepted = agent_weight_data.get('times_accepted', 0) or 0
+    times_rejected = agent_weight_data.get('times_rejected', 0) or 0
+
+    accept_rate = times_accepted / times_selected if times_selected > 0 else 0
+
+    return {
+        "agent_id": agent_id,
+        "weight": agent_weight_data.get('weight', 0.33),
+        "times_selected": times_selected,
+        "times_accepted": times_accepted,
+        "times_rejected": times_rejected,
+        "accept_rate": accept_rate,
+        "needs_optimization": accept_rate < 0.4 and times_selected >= 10
+    }
+
+
+@app.get("/api/prompt-suggestions")
+async def list_prompt_suggestions(agent_id: str = None):
+    """Get pending prompt suggestions"""
+    return get_pending_suggestions(agent_id)
+
+
+@app.post("/api/prompt-suggestions/{suggestion_id}/apply")
+async def apply_prompt_suggestion(suggestion_id: str):
+    """Apply a prompt suggestion"""
+    suggestion = get_suggestion(suggestion_id)
+    if not suggestion:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
+
+    # Update agent's custom prompt
+    update_agent_custom_prompt(suggestion['agent_id'], suggestion['suggested_prompt'])
+
+    # Save prompt version
+    version_id = str(uuid.uuid4())
+    save_prompt_version(version_id, suggestion['agent_id'], suggestion['suggested_prompt'])
+
+    # Mark suggestion as applied
+    update_suggestion_status(suggestion_id, 'applied')
+
+    return {"message": "Prompt updated successfully"}
+
+
+@app.post("/api/prompt-suggestions/{suggestion_id}/reject")
+async def reject_prompt_suggestion(suggestion_id: str):
+    """Reject a prompt suggestion"""
+    suggestion = get_suggestion(suggestion_id)
+    if not suggestion:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
+
+    update_suggestion_status(suggestion_id, 'rejected')
+    return {"message": "Suggestion rejected"}
+
+
+@app.get("/api/agents/{agent_id}/prompt-history")
+async def get_agent_prompt_history(agent_id: str):
+    """Get prompt version history for an agent"""
+    agent = get_agent_by_id(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    return get_prompt_history(agent_id)
+
+
+@app.post("/api/agents/{agent_id}/prompt")
+async def update_agent_prompt(agent_id: str, request: Request):
+    """Manually update an agent's custom prompt"""
+    agent = get_agent_by_id(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    data = await request.json()
+    custom_prompt = data.get("prompt")
+
+    if not custom_prompt:
+        raise HTTPException(status_code=400, detail="prompt field required")
+
+    update_agent_custom_prompt(agent_id, custom_prompt)
+
+    # Save version
+    version_id = str(uuid.uuid4())
+    save_prompt_version(version_id, agent_id, custom_prompt)
+
+    return {"message": "Prompt updated", "agent_id": agent_id}
 
 
 # SSE stream for real-time logs

@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { createWorkflow, updateWorkflow } from '../api';
+import { DAGCanvas } from './dag';
 
-function WorkflowEditor({ workflow, agents, onBack, onSave }) {
+function WorkflowEditor({ workflow, agents, onBack, onSave, integrations }) {
   const [name, setName] = useState(workflow?.name || 'New Workflow');
   const [description, setDescription] = useState(workflow?.description || '');
   const [triggerType, setTriggerType] = useState(workflow?.trigger_type || 'manual');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [editorMode, setEditorMode] = useState('visual'); // 'visual' or 'preview'
+  const [dagNodes, setDagNodes] = useState(workflow?.nodes || []);
+  const [dagEdges, setDagEdges] = useState(workflow?.edges || []);
 
   // Find agents by type
   const classifierAgent = agents.find(a => a.type === 'classifier');
@@ -98,14 +102,20 @@ function WorkflowEditor({ workflow, agents, onBack, onSave }) {
 
     setSaving(true);
     setError(null);
-    
+
     try {
+      // Use DAG nodes/edges if in visual mode, otherwise build defaults
+      const nodesToSave = dagNodes.length > 0 ? dagNodes :
+        (workflow?.nodes?.length > 0 ? workflow.nodes : buildDefaultNodes());
+      const edgesToSave = dagEdges.length > 0 ? dagEdges :
+        (workflow?.edges?.length > 0 ? workflow.edges : buildDefaultEdges());
+
       const workflowData = {
         name: name.trim(),
         description: description.trim(),
         trigger_type: triggerType,
-        nodes: workflow?.nodes?.length > 0 ? workflow.nodes : buildDefaultNodes(),
-        edges: workflow?.edges?.length > 0 ? workflow.edges : buildDefaultEdges()
+        nodes: nodesToSave,
+        edges: edgesToSave
       };
 
       console.log('Saving workflow:', workflowData);
@@ -118,7 +128,7 @@ function WorkflowEditor({ workflow, agents, onBack, onSave }) {
 
       setSuccess(true);
       await onSave();
-      
+
       // Show success briefly then go back
       setTimeout(() => {
         onBack();
@@ -129,6 +139,11 @@ function WorkflowEditor({ workflow, agents, onBack, onSave }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDagChange = (nodes, edges) => {
+    setDagNodes(nodes);
+    setDagEdges(edges);
   };
 
   return (
@@ -238,11 +253,41 @@ function WorkflowEditor({ workflow, agents, onBack, onSave }) {
         <div className="editor-canvas">
           <div className="canvas-content">
             <div className="pipeline-header">
-              <h3>🔄 Pipeline Preview</h3>
-              <p className="text-muted">Your workflow will execute this pipeline:</p>
+              <div className="pipeline-header-left">
+                <h3>Pipeline</h3>
+                <p className="text-muted">Design your workflow visually</p>
+              </div>
+              <div className="editor-mode-toggle">
+                <button
+                  className={`mode-btn ${editorMode === 'visual' ? 'active' : ''}`}
+                  onClick={() => setEditorMode('visual')}
+                >
+                  Visual Editor
+                </button>
+                <button
+                  className={`mode-btn ${editorMode === 'preview' ? 'active' : ''}`}
+                  onClick={() => setEditorMode('preview')}
+                >
+                  Preview
+                </button>
+              </div>
             </div>
-            
-            <div className="pipeline-visual">
+
+            {editorMode === 'visual' ? (
+              <DAGCanvas
+                initialNodes={dagNodes.length > 0 ? dagNodes : buildDefaultNodes().map((n, i) => ({
+                  ...n,
+                  position: { x: i * 200 + 50, y: 150 },
+                  data: { label: n.id, config: n.config }
+                }))}
+                initialEdges={dagEdges.length > 0 ? dagEdges : buildDefaultEdges()}
+                onChange={handleDagChange}
+                agents={agents}
+                integrations={integrations}
+              />
+            ) : (
+              <>
+                <div className="pipeline-visual">
               <div className="pipeline-node trigger-node">
                 <div className="node-icon">📥</div>
                 <div className="node-label">Trigger</div>
@@ -316,7 +361,7 @@ function WorkflowEditor({ workflow, agents, onBack, onSave }) {
             )}
 
             <div className="pipeline-info">
-              <h4>🧠 How Competition Works</h4>
+              <h4>How Competition Works</h4>
               <ol>
                 <li><strong>Workers compete:</strong> {workerAgents.length || 3} agents generate responses in parallel</li>
                 <li><strong>Supervisor scores:</strong> Each response gets a quality score (0-100)</li>
@@ -324,6 +369,8 @@ function WorkflowEditor({ workflow, agents, onBack, onSave }) {
                 <li><strong>Learn from feedback:</strong> Accept/Reject updates agent weights over time</li>
               </ol>
             </div>
+              </>
+            )}
           </div>
         </div>
       </div>

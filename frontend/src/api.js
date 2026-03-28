@@ -182,21 +182,122 @@ export async function getRunDetails(runId) {
 
 export function subscribeToLogs(runId, onLog, onComplete) {
   const eventSource = new EventSource(`${API_BASE}/stream/${runId}`);
-  
+
   eventSource.addEventListener('log', (event) => {
     const log = JSON.parse(event.data);
     onLog(log);
   });
-  
+
   eventSource.addEventListener('complete', (event) => {
     onComplete();
     eventSource.close();
   });
-  
+
   eventSource.onerror = () => {
     eventSource.close();
   };
-  
+
   return () => eventSource.close();
 }
+
+// ============== TEMPLATES ==============
+
+export async function getTemplates(category = null) {
+  const url = category
+    ? `${API_BASE}/templates?category=${category}`
+    : `${API_BASE}/templates`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch templates');
+  return res.json();
+}
+
+export async function getTemplateCategories() {
+  const res = await fetch(`${API_BASE}/templates/categories`);
+  if (!res.ok) throw new Error('Failed to fetch categories');
+  return res.json();
+}
+
+export async function getTemplate(templateId) {
+  const res = await fetch(`${API_BASE}/templates/${templateId}`);
+  if (!res.ok) throw new Error('Failed to fetch template');
+  return res.json();
+}
+
+export async function cloneTemplate(templateId, name = null) {
+  const res = await fetch(`${API_BASE}/templates/${templateId}/clone`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name })
+  });
+  if (!res.ok) throw new Error('Failed to clone template');
+  return res.json();
+}
+
+export async function createTemplate(template) {
+  const res = await fetch(`${API_BASE}/templates`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(template)
+  });
+  if (!res.ok) throw new Error('Failed to create template');
+  return res.json();
+}
+
+// ============== INTEGRATIONS ==============
+
+export async function getIntegrations() {
+  const res = await fetch(`${API_BASE}/integrations`);
+  if (!res.ok) throw new Error('Failed to fetch integrations');
+  return res.json();
+}
+
+// ============== PROMPT OPTIMIZATION ==============
+
+export async function getAgentPerformance(agentId) {
+  const res = await fetch(`${API_BASE}/agents/${agentId}/performance`);
+  if (!res.ok) throw new Error('Failed to fetch performance');
+  return res.json();
+}
+
+export async function getPendingSuggestions(agentId = null) {
+  const url = agentId
+    ? `${API_BASE}/prompt-suggestions?agent_id=${agentId}`
+    : `${API_BASE}/prompt-suggestions`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch suggestions');
+  return res.json();
+}
+
+export async function applySuggestion(suggestionId) {
+  const res = await fetch(`${API_BASE}/prompt-suggestions/${suggestionId}/apply`, {
+    method: 'POST'
+  });
+  if (!res.ok) throw new Error('Failed to apply suggestion');
+  return res.json();
+}
+
+export async function rejectSuggestion(suggestionId) {
+  const res = await fetch(`${API_BASE}/prompt-suggestions/${suggestionId}/reject`, {
+    method: 'POST'
+  });
+  if (!res.ok) throw new Error('Failed to reject suggestion');
+  return res.json();
+}
+
+export async function getPromptHistory(agentId) {
+  const res = await fetch(`${API_BASE}/agents/${agentId}/prompt-history`);
+  if (!res.ok) throw new Error('Failed to fetch prompt history');
+  return res.json();
+}
+
+export async function updateAgentPrompt(agentId, prompt) {
+  const res = await fetch(`${API_BASE}/agents/${agentId}/prompt`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt })
+  });
+  if (!res.ok) throw new Error('Failed to update prompt');
+  return res.json();
+}
+
 

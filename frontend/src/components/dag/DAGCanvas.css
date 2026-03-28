@@ -1,0 +1,83 @@
+.dag-canvas-container {
+  display: flex;
+  height: 500px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
+.dag-canvas-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+.dag-canvas-wrapper .react-flow {
+  background: var(--bg-secondary);
+}
+
+.dag-canvas-wrapper .react-flow__background {
+  background: var(--bg-secondary);
+}
+
+.dag-canvas-wrapper .react-flow__controls {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dag-canvas-wrapper .react-flow__controls-button {
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  fill: var(--text-secondary);
+}
+
+.dag-canvas-wrapper .react-flow__controls-button:hover {
+  background: var(--bg-secondary);
+}
+
+.dag-canvas-wrapper .react-flow__minimap {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.btn-save-dag {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  padding: 10px 20px;
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  transition: all 0.15s ease;
+}
+
+.btn-save-dag:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+/* Edge styling */
+.react-flow__edge-path {
+  stroke: var(--accent-color);
+  stroke-width: 2;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--accent-hover);
+  stroke-width: 3;
+}
+
+/* Connection line */
+.react-flow__connection-line {
+  stroke: var(--accent-color);
+  stroke-width: 2;
+}
