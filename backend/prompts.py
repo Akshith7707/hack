@@ -101,21 +101,27 @@ def build_worker_prompt(style: str, goal: str) -> str:
 # ============== REVIEWER PROMPTS ==============
 
 def build_reviewer_prompt() -> str:
-    """Generic reviewer/supervisor prompt"""
+    """Generic reviewer/supervisor prompt with strictly parseable output"""
     return """You are a Quality Reviewer for FlowForge.
 
-You will receive multiple responses to the same input. Score each on a scale of 0-100 based on:
+You will receive multiple responses to the same input. Score each on a scale of 1-10 based on:
 - Relevance: Does it address the input? (30%)
 - Quality: Is it well-written and clear? (25%)
 - Tone: Is the tone appropriate? (20%)
 - Completeness: Does it cover all important points? (15%)
 - Actionability: Can the user act on it? (10%)
 
-Output format (exactly):
-SCORE_1: <score for response 1>
-SCORE_2: <score for response 2>
-SCORE_3: <score for response 3>
-REVIEW: <brief analysis comparing the responses, noting strengths and weaknesses>"""
+IMPORTANT: You MUST output scores in EXACTLY this format (one per line):
+SCORE_1: <integer 1-10>
+SCORE_2: <integer 1-10>
+SCORE_3: <integer 1-10>
+REASONING: <one sentence comparing the responses>
+
+Example valid output:
+SCORE_1: 8
+SCORE_2: 6
+SCORE_3: 9
+REASONING: Response 3 best addresses the core issue with appropriate tone."""
 
 
 def build_supervisor_prompt() -> str:

@@ -8,8 +8,11 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "flowforge.db")
 
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+    conn = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=30.0)
     conn.row_factory = sqlite3.Row
+    # Enable WAL mode for better concurrency
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=30000")
     return conn
 
 
@@ -17,6 +20,7 @@ def init_db():
     conn = get_connection()
     cursor = conn.cursor()
     
+    # Agents table with drift detection columns
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS agents (
             id TEXT PRIMARY KEY,
@@ -26,10 +30,21 @@ def init_db():
             type TEXT NOT NULL CHECK(type IN ('classifier','worker','supervisor','decision')),
             style TEXT DEFAULT NULL,
             model TEXT DEFAULT 'Qwen/Qwen2.5-7B-Instruct',
+            drift_flag INTEGER DEFAULT 0,
+            drift_suggestion TEXT DEFAULT NULL,
             created_at TEXT NOT NULL
         )
     """)
     
+    # Migration: add drift columns if missing
+    cursor.execute("PRAGMA table_info(agents)")
+    columns = [col[1] for col in cursor.fetchall()]
+    if 'drift_flag' not in columns:
+        cursor.execute("ALTER TABLE agents ADD COLUMN drift_flag INTEGER DEFAULT 0")
+    if 'drift_suggestion' not in columns:
+        cursor.execute("ALTER TABLE agents ADD COLUMN drift_suggestion TEXT DEFAULT NULL")
+    
+    # Agent weights with total_runs tracking
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS agent_weights (
             agent_id TEXT PRIMARY KEY,
@@ -38,10 +53,72 @@ def init_db():
             times_selected INTEGER DEFAULT 0,
             times_accepted INTEGER DEFAULT 0,
             times_rejected INTEGER DEFAULT 0,
+            total_runs INTEGER DEFAULT 0,
+            avg_score REAL DEFAULT 0.0,
             FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE CASCADE
         )
     """)
     
+    # Migration: add total_runs if missing
+    cursor.execute("PRAGMA table_info(agent_weights)")
+    weight_cols = [col[1] for col in cursor.fetchall()]
+    if 'total_runs' not in weight_cols:
+        cursor.execute("ALTER TABLE agent_weights ADD COLUMN total_runs INTEGER DEFAULT 0")
+    if 'avg_score' not in weight_cols:
+        cursor.execute("ALTER TABLE agent_weights ADD COLUMN avg_score REAL DEFAULT 0.0")
+    
+    # Workflows table (like Zapier Zaps)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS workflows (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            trigger_type TEXT DEFAULT 'manual',
+            nodes TEXT,
+            edges TEXT,
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT NOT NULL,
+            updated_at TEXT
+        )
+    """)
+    
+    # Executions table (workflow run instances)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS executions (
+            id TEXT PRIMARY KEY,
+            workflow_id TEXT,
+            trigger_data TEXT,
+            status TEXT DEFAULT 'running',
+            results TEXT,
+            selected_agent_id TEXT,
+            selected_agent_name TEXT,
+            final_output TEXT,
+            started_at TEXT NOT NULL,
+            completed_at TEXT,
+            FOREIGN KEY (workflow_id) REFERENCES workflows(id)
+        )
+    """)
+    
+    # Execution logs (per-node logs)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS execution_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            execution_id TEXT NOT NULL,
+            node_id TEXT,
+            agent_id TEXT,
+            agent_name TEXT,
+            agent_type TEXT,
+            input_text TEXT,
+            output_text TEXT,
+            score REAL,
+            duration_ms INTEGER,
+            step_order INTEGER,
+            timestamp TEXT NOT NULL,
+            FOREIGN KEY (execution_id) REFERENCES executions(id)
+        )
+    """)
+    
+    # Legacy workflow_runs table (keep for backwards compatibility)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS workflow_runs (
             id TEXT PRIMARY KEY,
@@ -75,10 +152,34 @@ def init_db():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS feedback_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            run_id TEXT NOT NULL,
+            run_id TEXT,
+            execution_id TEXT,
+            agent_id TEXT,
             selected_agent TEXT,
             action TEXT NOT NULL CHECK(action IN ('accept','reject')),
+            score REAL,
             context TEXT,
+            timestamp TEXT NOT NULL
+        )
+    """)
+    
+    # Migration: add agent_id to feedback_log if missing
+    cursor.execute("PRAGMA table_info(feedback_log)")
+    feedback_cols = [col[1] for col in cursor.fetchall()]
+    if 'agent_id' not in feedback_cols:
+        cursor.execute("ALTER TABLE feedback_log ADD COLUMN agent_id TEXT")
+    if 'execution_id' not in feedback_cols:
+        cursor.execute("ALTER TABLE feedback_log ADD COLUMN execution_id TEXT")
+    if 'score' not in feedback_cols:
+        cursor.execute("ALTER TABLE feedback_log ADD COLUMN score REAL")
+    
+    # Weight history for charting
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS weight_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            agent_id TEXT NOT NULL,
+            weight REAL NOT NULL,
+            run_number INTEGER,
             timestamp TEXT NOT NULL
         )
     """)
@@ -338,18 +439,23 @@ def get_all_runs(limit: int = 50) -> List[Dict]:
 
 
 # Feedback
-def save_feedback(run_id: str, selected_agent: str, action: str, context: Optional[str] = None):
+def save_feedback(run_id: str, selected_agent: str, action: str, context: Optional[str] = None, 
+                  agent_id: Optional[str] = None, execution_id: Optional[str] = None, score: Optional[float] = None):
     conn = get_connection()
     cursor = conn.cursor()
     
     cursor.execute("""
-        INSERT INTO feedback_log (run_id, selected_agent, action, context, timestamp)
-        VALUES (?, ?, ?, ?, ?)
-    """, (run_id, selected_agent, action, context, datetime.utcnow().isoformat()))
+        INSERT INTO feedback_log (run_id, execution_id, agent_id, selected_agent, action, score, context, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, (run_id, execution_id, agent_id, selected_agent, action, score, context, datetime.utcnow().isoformat()))
     
-    cursor.execute("""
-        UPDATE workflow_runs SET feedback = ? WHERE id = ?
-    """, (action, run_id))
+    # Update legacy workflow_runs if run_id exists
+    if run_id:
+        cursor.execute("UPDATE workflow_runs SET feedback = ? WHERE id = ?", (action, run_id))
+    
+    # Update executions if execution_id exists
+    if execution_id:
+        cursor.execute("UPDATE executions SET status = 'completed' WHERE id = ?", (execution_id,))
     
     conn.commit()
     conn.close()
@@ -369,3 +475,302 @@ def get_recent_rejection_count(limit: int = 5) -> int:
     conn.close()
     
     return row['count'] if row else 0
+
+
+# ============== WORKFLOW CRUD ==============
+
+def create_workflow(workflow_id: str, name: str, description: str = None, 
+                    trigger_type: str = 'manual', nodes: List = None, edges: List = None) -> Dict:
+    conn = get_connection()
+    cursor = conn.cursor()
+    now = datetime.utcnow().isoformat()
+    
+    cursor.execute("""
+        INSERT INTO workflows (id, name, description, trigger_type, nodes, edges, is_active, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+    """, (workflow_id, name, description, trigger_type, 
+          json.dumps(nodes or []), json.dumps(edges or []), now, now))
+    
+    conn.commit()
+    conn.close()
+    
+    return {
+        "id": workflow_id,
+        "name": name,
+        "description": description,
+        "trigger_type": trigger_type,
+        "nodes": nodes or [],
+        "edges": edges or [],
+        "is_active": True,
+        "created_at": now
+    }
+
+
+def get_all_workflows() -> List[Dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM workflows ORDER BY created_at DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    
+    results = []
+    for row in rows:
+        data = dict(row)
+        data['nodes'] = json.loads(data['nodes']) if data['nodes'] else []
+        data['edges'] = json.loads(data['edges']) if data['edges'] else []
+        data['is_active'] = bool(data['is_active'])
+        results.append(data)
+    
+    return results
+
+
+def get_workflow(workflow_id: str) -> Optional[Dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM workflows WHERE id = ?", (workflow_id,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        data = dict(row)
+        data['nodes'] = json.loads(data['nodes']) if data['nodes'] else []
+        data['edges'] = json.loads(data['edges']) if data['edges'] else []
+        data['is_active'] = bool(data['is_active'])
+        return data
+    return None
+
+
+def update_workflow(workflow_id: str, **kwargs) -> bool:
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    updates = []
+    values = []
+    for key, value in kwargs.items():
+        if key in ['name', 'description', 'trigger_type', 'is_active']:
+            updates.append(f"{key} = ?")
+            values.append(value)
+        elif key in ['nodes', 'edges']:
+            updates.append(f"{key} = ?")
+            values.append(json.dumps(value))
+    
+    if updates:
+        updates.append("updated_at = ?")
+        values.append(datetime.utcnow().isoformat())
+        values.append(workflow_id)
+        
+        cursor.execute(f"UPDATE workflows SET {', '.join(updates)} WHERE id = ?", values)
+        conn.commit()
+    
+    conn.close()
+    return True
+
+
+def delete_workflow(workflow_id: str) -> bool:
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("DELETE FROM workflows WHERE id = ?", (workflow_id,))
+    affected = cursor.rowcount
+    
+    conn.commit()
+    conn.close()
+    
+    return affected > 0
+
+
+# ============== EXECUTION CRUD ==============
+
+def create_execution(execution_id: str, workflow_id: str = None, trigger_data: str = None) -> Dict:
+    conn = get_connection()
+    cursor = conn.cursor()
+    now = datetime.utcnow().isoformat()
+    
+    cursor.execute("""
+        INSERT INTO executions (id, workflow_id, trigger_data, status, started_at)
+        VALUES (?, ?, ?, 'running', ?)
+    """, (execution_id, workflow_id, trigger_data, now))
+    
+    conn.commit()
+    conn.close()
+    
+    return {
+        "id": execution_id,
+        "workflow_id": workflow_id,
+        "status": "running",
+        "started_at": now
+    }
+
+
+def update_execution(execution_id: str, **kwargs):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    updates = []
+    values = []
+    for key, value in kwargs.items():
+        if key == 'results':
+            updates.append(f"{key} = ?")
+            values.append(json.dumps(value) if isinstance(value, (dict, list)) else value)
+        elif key in ['status', 'selected_agent_id', 'selected_agent_name', 'final_output', 'completed_at']:
+            updates.append(f"{key} = ?")
+            values.append(value)
+    
+    if updates:
+        values.append(execution_id)
+        cursor.execute(f"UPDATE executions SET {', '.join(updates)} WHERE id = ?", values)
+        conn.commit()
+    
+    conn.close()
+
+
+def get_execution(execution_id: str) -> Optional[Dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT * FROM executions WHERE id = ?", (execution_id,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        data = dict(row)
+        data['results'] = json.loads(data['results']) if data['results'] else None
+        return data
+    return None
+
+
+def get_execution_logs(execution_id: str) -> List[Dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT * FROM execution_logs WHERE execution_id = ? ORDER BY step_order, timestamp
+    """, (execution_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return [dict(row) for row in rows]
+
+
+def save_execution_log(execution_id: str, node_id: str, agent_id: str, agent_name: str,
+                       agent_type: str, input_text: str, output_text: str, 
+                       score: float = None, duration_ms: int = None, step_order: int = 0):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT INTO execution_logs (execution_id, node_id, agent_id, agent_name, agent_type,
+                                    input_text, output_text, score, duration_ms, step_order, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (execution_id, node_id, agent_id, agent_name, agent_type, 
+          input_text, output_text, score, duration_ms, step_order, datetime.utcnow().isoformat()))
+    
+    conn.commit()
+    conn.close()
+
+
+def get_recent_executions(limit: int = 20) -> List[Dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT e.*, w.name as workflow_name 
+        FROM executions e
+        LEFT JOIN workflows w ON e.workflow_id = w.id
+        ORDER BY e.started_at DESC LIMIT ?
+    """, (limit,))
+    rows = cursor.fetchall()
+    conn.close()
+    
+    results = []
+    for row in rows:
+        data = dict(row)
+        data['results'] = json.loads(data['results']) if data['results'] else None
+        results.append(data)
+    
+    return results
+
+
+# ============== DRIFT DETECTION ==============
+
+def set_agent_drift(agent_id: str, drift_flag: bool, suggestion: str = None):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        UPDATE agents SET drift_flag = ?, drift_suggestion = ? WHERE id = ?
+    """, (1 if drift_flag else 0, suggestion, agent_id))
+    
+    conn.commit()
+    conn.close()
+
+
+def reset_agent_drift(agent_id: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        UPDATE agents SET drift_flag = 0, drift_suggestion = NULL WHERE id = ?
+    """, (agent_id,))
+    
+    conn.commit()
+    conn.close()
+
+
+def get_agent_feedback_history(agent_id: str, limit: int = 10) -> List[Dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT * FROM feedback_log WHERE agent_id = ? ORDER BY timestamp DESC LIMIT ?
+    """, (agent_id, limit))
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return [dict(row) for row in rows]
+
+
+def save_weight_history(agent_id: str, weight: float, run_number: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT INTO weight_history (agent_id, weight, run_number, timestamp)
+        VALUES (?, ?, ?, ?)
+    """, (agent_id, weight, run_number, datetime.utcnow().isoformat()))
+    
+    conn.commit()
+    conn.close()
+
+
+def get_weight_history(agent_id: str = None, limit: int = 100) -> List[Dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    if agent_id:
+        cursor.execute("""
+            SELECT * FROM weight_history WHERE agent_id = ? ORDER BY timestamp DESC LIMIT ?
+        """, (agent_id, limit))
+    else:
+        cursor.execute("""
+            SELECT * FROM weight_history ORDER BY timestamp DESC LIMIT ?
+        """, (limit,))
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return [dict(row) for row in rows]
+
+
+def increment_total_runs(agent_id: str):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        UPDATE agent_weights SET total_runs = total_runs + 1 WHERE agent_id = ?
+    """, (agent_id,))
+    
+    conn.commit()
+    conn.close()
